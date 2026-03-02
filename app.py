@@ -261,17 +261,54 @@ except Exception as e:
 # Helper – horizontal label strip rendered below a chart
 # ======================================================================
 
-def _label_strip(items: list[tuple[str, str, str]]) -> None:
+def _inject_tooltip_css() -> None:
+    """Inject CSS for the ? hover tooltip used in label strips. Call once per page."""
+    st.markdown("""
+    <style>
+    .tip-wrap{position:relative;display:inline-block}
+    .tip-icon{
+        display:inline-flex;align-items:center;justify-content:center;
+        width:13px;height:13px;border-radius:50%;
+        background:#b8b4ac;color:#fff;
+        font-size:0.58rem;font-weight:700;cursor:default;
+        margin-left:4px;vertical-align:middle;line-height:1;
+        flex-shrink:0;
+    }
+    .tip-box{
+        visibility:hidden;opacity:0;
+        background:#2f2f2f;color:#f0efeb;
+        font-size:0.72rem;font-weight:400;line-height:1.45;
+        padding:7px 11px;border-radius:7px;
+        width:190px;text-align:left;
+        position:absolute;bottom:135%;left:50%;transform:translateX(-50%);
+        z-index:9999;transition:opacity 0.15s;
+        pointer-events:none;white-space:normal;
+        box-shadow:0 2px 8px rgba(0,0,0,0.22);
+    }
+    .tip-wrap:hover .tip-box{visibility:visible;opacity:1}
+    </style>
+    """, unsafe_allow_html=True)
+
+
+def _label_strip(items) -> None:
     """
     Render a row of labelled values as styled HTML below a chart.
-    items: list of (label, value, hex_colour)
+    items: list of (label, value, hex_colour) or (label, value, hex_colour, tooltip_text)
     """
     parts = []
-    for label, value, colour in items:
+    for row in items:
+        label, value, colour = row[0], row[1], row[2]
+        tip = row[3] if len(row) >= 4 else ""
+        tip_html = (
+            f'<span class="tip-wrap">'
+            f'<span class="tip-icon">?</span>'
+            f'<span class="tip-box">{tip}</span>'
+            f'</span>'
+        ) if tip else ""
         parts.append(
             f'<div style="display:inline-block;margin-right:2.5rem;">'
             f'<span style="font-size:0.8rem;color:#9a9a9a;text-transform:uppercase;'
-            f'letter-spacing:0.05em;display:block;margin-bottom:2px">{label}</span>'
+            f'letter-spacing:0.05em;display:block;margin-bottom:2px">{label}{tip_html}</span>'
             f'<span style="font-size:1.1rem;font-weight:600;color:{colour}">{value}</span>'
             f'</div>'
         )
@@ -287,6 +324,7 @@ def _label_strip(items: list[tuple[str, str, str]]) -> None:
 
 st.markdown(f"# {ticker_input}")
 st.caption(f"Current price: **${spot:,.2f}** · Expiry: **{expiry}** ({int(dte)} days)")
+_inject_tooltip_css()
 
 
 # ======================================================================
@@ -298,17 +336,24 @@ c1, c2, c3, c4, c5 = st.columns(5)
 mean_chg = (dist["mean"] - spot) / spot * 100
 c1.metric("Expected Price", f"${dist['mean']:,.2f}",
            delta=f"{mean_chg:+.1f}%",
-           delta_color="normal")
+           delta_color="normal",
+           help="Options-implied expected price at expiry, derived from the Breeden-Litzenberger probability distribution.")
 
+c2_move_delta = round(dist['mean'] - spot, 2)
 c2.metric("Expected Move", f"±{em['move_pct']:.1f}%",
-           delta=f"${em['move_abs']:,.2f}")
+           delta=c2_move_delta,
+           delta_color="normal",
+           help="Market-implied ±1 standard deviation price range. Delta shows implied mean change vs spot (mean − spot).")
 
-c3.metric("P(above spot)", f"{probs['prob_above']*100:.1f}%")
+c3.metric("P(above spot)", f"{probs['prob_above']*100:.1f}%",
+           help="Implied probability the price will be above the current spot price at expiry.")
 
-c4.metric("P(below spot)", f"{probs['prob_below']*100:.1f}%")
+c4.metric("P(below spot)", f"{probs['prob_below']*100:.1f}%",
+           help="Implied probability the price will be below the current spot price at expiry.")
 
 mp_display = f"${mp:,.2f}" if not np.isnan(mp) else "N/A"
-c5.metric("Max Pain", mp_display)
+c5.metric("Max Pain", mp_display,
+           help="Strike price where the most options expire worthless, causing maximum pain to option holders. Often acts as a price magnet near expiry.")
 
 
 # Pre-compute entry/sentiment display values used later in the page
@@ -343,11 +388,11 @@ st.plotly_chart(
 )
 
 _label_strip([
-    ("Spot",       f"${spot:,.2f}",          "#1c1c1c"),
-    ("Mean",       f"${dist['mean']:,.2f}",   "#4d6a61"),
-    ("Max Pain",   mp_display,                "#c08050"),
-    ("Range low",  f"${em['lower']:,.2f}",    "#b05040"),
-    ("Range high", f"${em['upper']:,.2f}",    "#3d7a5a"),
+    ("Spot",       f"${spot:,.2f}",          "#1c1c1c", "Current market price of the asset."),
+    ("Mean",       f"${dist['mean']:,.2f}",   "#4d6a61", "Options-implied expected price at expiry, weighted by the probability distribution."),
+    ("Max Pain",   mp_display,                "#c08050", "Strike where the most options expire worthless. Often acts as a gravitational target near expiry."),
+    ("Range low",  f"${em['lower']:,.2f}",    "#b05040", "Lower bound of the 1-std-dev expected move (~68% confidence interval)."),
+    ("Range high", f"${em['upper']:,.2f}",    "#3d7a5a", "Upper bound of the 1-std-dev expected move (~68% confidence interval)."),
 ])
 
 
@@ -369,11 +414,11 @@ st.plotly_chart(
 )
 
 _label_strip([
-    ("10th pct",  f"${pctiles.get(10, 0):,.2f}",  "#b05040"),
-    ("25th pct",  f"${pctiles.get(25, 0):,.2f}",  "#c08050"),
-    ("50th pct",  f"${pctiles.get(50, 0):,.2f}",  "#4d6a61"),
-    ("75th pct",  f"${pctiles.get(75, 0):,.2f}",  "#4d6a61"),
-    ("90th pct",  f"${pctiles.get(90, 0):,.2f}",  "#3d7a5a"),
+    ("10th pct",  f"${pctiles.get(10, 0):,.2f}",  "#b05040", "10% chance price is at or below this level by expiry."),
+    ("25th pct",  f"${pctiles.get(25, 0):,.2f}",  "#c08050", "25% chance price is at or below this level by expiry."),
+    ("50th pct",  f"${pctiles.get(50, 0):,.2f}",  "#4d6a61", "Median — equal chance price ends above or below this level by expiry."),
+    ("75th pct",  f"${pctiles.get(75, 0):,.2f}",  "#4d6a61", "75% chance price is at or below this level by expiry."),
+    ("90th pct",  f"${pctiles.get(90, 0):,.2f}",  "#3d7a5a", "90% chance price is at or below this level by expiry."),
 ])
 
 
@@ -396,14 +441,14 @@ st.plotly_chart(
 _rr = f"{entry_info['risk_reward']:.1f}\u00d7" if not np.isnan(entry_info['risk_reward']) else "N/A"
 _bias_colour = "#3d7a5a" if entry_info['bias'] == "bullish" else "#b05040" if entry_info['bias'] == "bearish" else "#1c1c1c"
 _label_strip([
-    ("Bias",          bias_label,                         _bias_colour),
-    ("Spot",          f"${spot:,.2f}",                    "#1c1c1c"),
-    ("Entry",         f"${entry_info['entry']:,.2f}",      "#c08050"),
-    ("Stop",          f"${entry_info['stop']:,.2f}",       "#b05040"),
-    ("Target",        f"${entry_info['target']:,.2f}",     "#3d7a5a"),
-    ("R/R",           _rr,                                 "#4d6a61"),
-    ("Put/Call (Vol)", pcr_vol_display,                    "#555555"),
-    ("Sentiment",     pcr['sentiment'].title(),            "#555555"),
+    ("Bias",          bias_label,                         _bias_colour,  "Directional lean derived from S/R positioning and the options probability distribution."),
+    ("Spot",          f"${spot:,.2f}",                    "#1c1c1c",     "Current market price of the asset."),
+    ("Entry",         f"${entry_info['entry']:,.2f}",      "#c08050",    "Suggested entry price based on the nearest support or resistance level."),
+    ("Stop",          f"${entry_info['stop']:,.2f}",       "#b05040",    "Suggested stop-loss level to cap downside if the trade goes against you."),
+    ("Target",        f"${entry_info['target']:,.2f}",     "#3d7a5a",    "Suggested profit target based on the opposing S/R level."),
+    ("R/R",           _rr,                                 "#4d6a61",    "Risk-to-reward ratio: target distance ÷ stop distance. A ratio above 2× is generally considered favourable."),
+    ("Put/Call (Vol)", pcr_vol_display,                    "#555555",    "Ratio of put volume to call volume. Above 1 signals more bearish hedging; below 1 signals more bullish positioning."),
+    ("Sentiment",     pcr['sentiment'].title(),            "#555555",    "Market sentiment implied by the Put/Call ratio — Bullish, Bearish, or Neutral."),
 ])
 
 

@@ -95,36 +95,6 @@ This yields the **market-implied distribution** — not a prediction of what *wi
 
 ---
 
-## Project Structure
-
-```
-├── app.py              # Streamlit web UI
-├── main.py             # CLI entry point
-├── data_fetcher.py     # Yahoo Finance data layer
-├── crypto_fetcher.py   # Deribit API data layer (BTC/ETH options)
-├── analysis.py         # Distribution, metrics, IV smile
-├── charts.py           # Plotly interactive charts
-├── visualize.py        # Matplotlib static charts (CLI)
-├── requirements.txt
-└── options_forecast/   # Package layout (analysis/ + charts/)
-```
-
----
-
-## Dependencies
-
-| Package | Purpose |
-|---|---|
-| `yfinance` | Free market and options data (stocks/ETFs) |
-| `requests` | HTTP client for the Deribit crypto options API |
-| `numpy` / `scipy` | Numerical analysis and interpolation |
-| `pandas` | Data wrangling |
-| `streamlit` | Interactive web UI |
-| `plotly` | Interactive charts |
-| `matplotlib` | Static charts (CLI mode) |
-
----
-
 ## Limitations
 
 - Uses **risk-neutral** probabilities, not real-world forecasts. Markets embed a risk premium, so tail probabilities may appear larger than historical frequencies.

@@ -500,7 +500,8 @@ def entry_analysis(
     # Combine probability signal, mean bias and skew
     raw = (prob_above - 0.5) * 2                    # −1 to +1
     raw += np.clip(mean_pct / 5.0, -0.3, 0.3)      # mean deviation
-    raw -= skew * 0.05                              # skew penalty
+    # Apply skew as a small penalty: negative skew -> more bearish (decrease raw)
+    raw += skew * 0.05
     bias_score = float(np.clip(raw, -1.0, 1.0))
 
     if bias_score > 0.12:

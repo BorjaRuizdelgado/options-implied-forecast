@@ -807,11 +807,19 @@ def build_sr_chart(
     resistances = sorted([l for l in non_ma if l["price"] > spot],
                          key=lambda l: abs(l["price"] - spot))[:3]
 
+    # Color S/R lines according to bias: bullish -> supports green, resistances red;
+    # bearish -> supports red, resistances green; neutral -> default colours
+    bias = (entry_info.get("bias") or "").lower()
     for level in supports + resistances:
         price  = level["price"]
         src    = level["source"]
         ltype  = level["type"]
-        colour = THEME["green"] if ltype == "support" else THEME["red"]
+        if bias == "bullish":
+            colour = THEME["green"] if ltype == "support" else THEME["red"]
+        elif bias == "bearish":
+            colour = THEME["red"] if ltype == "support" else THEME["green"]
+        else:
+            colour = THEME["green"] if ltype == "support" else THEME["red"]
         dash   = "dash" if src == "gamma_wall" else "dot"
         label  = ("GW" if src == "gamma_wall" else "Pivot") + f" ${price:,.0f}"
 
@@ -847,13 +855,23 @@ def build_sr_chart(
     stop   = entry_info.get("stop")
     target = entry_info.get("target")
 
+    # Colour the entry band by directional bias so it reads immediately
+    bias = (entry_info.get("bias") or "").lower()
+    if bias == "bullish":
+        entry_fill = "rgba(61,122,90,0.18)"  # greenish
+    elif bias == "bearish":
+        entry_fill = "rgba(176,80,64,0.18)"  # reddish
+    else:
+        entry_fill = "rgba(192,128,80,0.18)"  # neutral/copper
+
     if entry is not None:
         band_h = entry * 0.004
         fig.add_hrect(
             y0=entry - band_h, y1=entry + band_h,
-            fillcolor="rgba(192,128,80,0.18)", line_width=0, layer="above",
+            fillcolor=entry_fill, line_width=0, layer="above",
         )
 
+    # Colour stop/target semantically: target = profit (green), stop = loss (red)
     if stop is not None:
         fig.add_hline(
             y=stop,

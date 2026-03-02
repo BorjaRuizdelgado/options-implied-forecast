@@ -38,7 +38,7 @@ LAYOUT_DEFAULTS = dict(
     plot_bgcolor=THEME["bg"],
     font=dict(family="DM Sans, Helvetica Neue, Helvetica, Arial, sans-serif",
               color=THEME["text"], size=14),
-    margin=dict(l=65, r=130, t=55, b=55),
+    margin=dict(l=65, r=30, t=55, b=55),
     hoverlabel=dict(
         bgcolor=THEME["bg_alt"],
         bordercolor=THEME["border"],
@@ -75,6 +75,8 @@ def build_forecast_chart(
     puts: pd.DataFrame,
     history: pd.DataFrame | None,
     days_to_expiry: float,
+    sr: dict | None = None,
+    entry_info: dict | None = None,
 ) -> go.Figure:
     """Build the main interactive price forecast chart."""
 
@@ -142,26 +144,22 @@ def build_forecast_chart(
 
     # Spot
     fig.add_hline(y=spot, line=dict(color=THEME["text"], width=2, dash="dash"), opacity=0.5)
-    fig.add_annotation(text=f"Spot ${spot:,.2f}", x=1.01, y=spot,
-                       xref="paper", yref="y", xanchor="left",
-                       font=dict(size=13, color=THEME["text"]), showarrow=False)
     # Mean
     fig.add_hline(y=dist["mean"], line=dict(color=THEME["accent"], width=2, dash="dashdot"), opacity=0.4)
-    fig.add_annotation(text=f"Mean ${dist['mean']:,.2f}", x=1.01, y=dist["mean"],
-                       xref="paper", yref="y", xanchor="left",
-                       font=dict(size=13, color=THEME["accent"]), showarrow=False)
     # Max pain
     if not np.isnan(mp) and abs(mp - spot) / spot < 0.25:
         fig.add_hline(y=mp, line=dict(color=THEME["accent_warm"], width=2, dash="dot"), opacity=0.35)
-        fig.add_annotation(text=f"Max Pain ${mp:,.2f}", x=1.01, y=mp,
-                           xref="paper", yref="y", xanchor="left",
-                           font=dict(size=13, color=THEME["accent_warm"]), showarrow=False)
 
     # "Now" divider
     fig.add_vline(x=anchor, line=dict(color=THEME["border"], width=1.5), opacity=0.6)
-    fig.add_annotation(text="now", x=anchor, y=1.03,
-                       xref="x", yref="paper",
-                       font=dict(size=13, color=THEME["text_muted"]), showarrow=False)
+
+    # ------------------------------------------------------------------
+    # S/R levels and entry zones (optional)
+    # ------------------------------------------------------------------
+    if sr is not None:
+        _add_sr_levels(fig, sr, all_dates)
+    if entry_info is not None:
+        _add_entry_zones(fig, entry_info, all_dates)
 
     # ------------------------------------------------------------------
     # Layout
@@ -184,7 +182,7 @@ def build_forecast_chart(
             x=0.01, y=0.99,
             xanchor="left", yanchor="top",
         ),
-        height=560,
+        height=720,
         hovermode="x unified",
     )
 
@@ -338,7 +336,7 @@ def _add_projection_fan(fig, dist, pctiles, spot, anchor, future_dates):
         hovertemplate="<b>Median</b><br>$%{y:,.2f}<extra></extra>",
     ))
 
-    # Endpoint price labels in the right margin
+    # Endpoint dots at the right edge of the fan — visible on hover only
     for label, val, colour in [
         ("90th", p90, THEME["green"]),
         ("75th", p75, THEME["accent"]),
@@ -346,14 +344,13 @@ def _add_projection_fan(fig, dist, pctiles, spot, anchor, future_dates):
         ("25th", p25, THEME["accent_warm"]),
         ("10th", p10, THEME["red"]),
     ]:
-        fig.add_annotation(
-            x=1.01, y=val,
-            xref="paper", yref="y",
-            text=f"{label}: ${val:,.0f}",
-            showarrow=False,
-            font=dict(size=13, color=colour),
-            xanchor="left",
-        )
+        fig.add_trace(go.Scatter(
+            x=[dates_arr[-1]], y=[val],
+            mode="markers",
+            marker=dict(color=colour, size=7, symbol="circle"),
+            showlegend=False,
+            hovertemplate=f"<b>{label} percentile</b><br>${val:,.2f}<extra></extra>",
+        ))
 
 
 # ======================================================================
@@ -418,7 +415,7 @@ def build_distribution_chart(
         fig.add_annotation(text="No distribution data", xref="paper", yref="paper",
                            x=0.5, y=0.5, showarrow=False,
                            font=dict(size=14, color=THEME["text_muted"]))
-        fig.update_layout(**LAYOUT_DEFAULTS, height=340)
+        fig.update_layout(**LAYOUT_DEFAULTS, height=480)
         return fig
 
     # Percentile values
@@ -475,36 +472,23 @@ def build_distribution_chart(
     if not np.isnan(mp) and abs(mp - spot) / spot < 0.25:
         level_annotations.append(("Max Pain", mp, mp, THEME["accent_warm"]))
 
-    # Sort by price value and stagger y-positions to avoid text overlap
+    # Sort by price value — draw vlines only, no text on the chart
     level_annotations.sort(key=lambda t: t[1])
-    y_positions = [1.12, 1.02, 0.92]  # staggered multipliers of y_max
     for i, (lbl, val, _, colour) in enumerate(level_annotations):
-        y_pos = y_max * y_positions[i] if i < len(y_positions) else y_max * 0.82
         fig.add_vline(x=val,
                       line=dict(color=colour, width=2,
                                 dash="dash" if lbl == "Spot" else
                                      "dashdot" if lbl == "Mean" else "dot"),
                       opacity=0.5 if lbl == "Spot" else 0.4)
-        fig.add_annotation(text=f"{lbl} ${val:,.2f}", x=val, y=y_pos,
-                           xref="x", yref="y", showarrow=False,
-                           font=dict(size=12, color=colour))
 
-    # Percentile markers at the bottom
+    # Percentile tick marks at the bottom of the density (no text labels)
     for label, val, colour in [
         ("10th", p10, THEME["red"]),
         ("25th", p25, THEME["accent_warm"]),
         ("75th", p75, THEME["accent"]),
         ("90th", p90, THEME["green"]),
     ]:
-        fig.add_annotation(
-            text=f"{label}<br>${val:,.0f}",
-            x=val, y=0,
-            xref="x", yref="y",
-            showarrow=True,
-            arrowhead=0, arrowwidth=1, arrowcolor=colour,
-            ax=0, ay=30,
-            font=dict(size=12, color=colour),
-        )
+        fig.add_vline(x=val, line=dict(color=colour, width=1, dash="dot"), opacity=0.35)
 
     # ------------------------------------------------------------------
     # Layout — trim X-axis to the meaningful density region
@@ -531,7 +515,7 @@ def build_distribution_chart(
                     borderwidth=1, font=dict(size=12),
                     orientation="h",
                     x=0.5, xanchor="center", y=1.0, yanchor="bottom"),
-        height=360,
+        height=480,
         hovermode="x unified",
     )
 
@@ -550,28 +534,26 @@ def build_iv_smile_chart(iv_df: pd.DataFrame, spot: float) -> go.Figure:
         fig.add_annotation(text="No IV data available", xref="paper", yref="paper",
                            x=0.5, y=0.5, showarrow=False,
                            font=dict(size=14, color=THEME["text_muted"]))
-        fig.update_layout(**LAYOUT_DEFAULTS, height=300)
+        fig.update_layout(**LAYOUT_DEFAULTS, height=400)
         return fig
 
     call_iv = iv_df[iv_df["type"] == "call"]
     put_iv = iv_df[iv_df["type"] == "put"]
 
     if not call_iv.empty:
-        fig.add_trace(go.Scatter(
+        fig.add_trace(go.Bar(
             x=call_iv["strike"], y=call_iv["iv"] * 100,
-            mode="markers+lines",
-            marker=dict(color=THEME["accent"], size=6),
-            line=dict(color=THEME["accent"], width=1.5),
+            marker_color=THEME["accent"],
+            opacity=0.75,
             name="Calls IV",
             hovertemplate="<b>Call</b> $%{x:,.0f}<br>IV: %{y:.1f}%<extra></extra>",
         ))
 
     if not put_iv.empty:
-        fig.add_trace(go.Scatter(
+        fig.add_trace(go.Bar(
             x=put_iv["strike"], y=put_iv["iv"] * 100,
-            mode="markers+lines",
-            marker=dict(color=THEME["accent_warm"], size=6),
-            line=dict(color=THEME["accent_warm"], width=1.5),
+            marker_color=THEME["accent_warm"],
+            opacity=0.75,
             name="Puts IV",
             hovertemplate="<b>Put</b> $%{x:,.0f}<br>IV: %{y:.1f}%<extra></extra>",
         ))
@@ -594,8 +576,9 @@ def build_iv_smile_chart(iv_df: pd.DataFrame, spot: float) -> go.Figure:
                     borderwidth=1, font=dict(size=12),
                     orientation="h",
                     x=0.5, xanchor="center", y=1.0, yanchor="bottom"),
-        height=360,
+        height=400,
         hovermode="x unified",
+        barmode="group",
     )
 
     return fig
@@ -630,7 +613,7 @@ def build_oi_chart(calls: pd.DataFrame, puts: pd.DataFrame, spot: float) -> go.F
                            xref="paper", yref="paper", x=0.5, y=0.5,
                            showarrow=False,
                            font=dict(size=14, color=THEME["text_muted"]))
-        fig.update_layout(**LAYOUT_DEFAULTS, height=340)
+        fig.update_layout(**LAYOUT_DEFAULTS, height=400)
         return fig
 
     # ---- Calls ----
@@ -694,7 +677,211 @@ def build_oi_chart(calls: pd.DataFrame, puts: pd.DataFrame, spot: float) -> go.F
                     borderwidth=1, font=dict(size=12),
                     orientation="h",
                     x=0.5, xanchor="center", y=1.0, yanchor="bottom"),
-        height=360,
+        height=400,
+        hovermode="x unified",
+    )
+
+    return fig
+
+
+# ======================================================================
+# S/R overlay helpers
+# ======================================================================
+
+_SR_SOURCE_STYLE = {
+    "MA20":       dict(dash="dot",     width=1.5),
+    "MA50":       dict(dash="dashdot", width=1.5),
+    "MA200":      dict(dash="dash",    width=2.0),
+    "pivot":      dict(dash="dot",     width=1.5),
+    "gamma_wall": dict(dash="dash",    width=2.0),
+}
+
+
+def _add_sr_levels(fig: go.Figure, sr: dict, all_dates: list):
+    """Kept for compatibility – no longer called from the main forecast chart."""
+    pass
+
+
+def _add_entry_zones(fig: go.Figure, entry_info: dict, all_dates: list):
+    """Kept for compatibility – no longer called from the main forecast chart."""
+    pass
+
+
+# ======================================================================
+# S/R + Entry Setup chart
+# ======================================================================
+
+def build_sr_chart(
+    ticker: str,
+    history: "pd.DataFrame | None",
+    spot: float,
+    sr: dict,
+    entry_info: dict,
+) -> go.Figure:
+    """
+    Clean candlestick chart focused on the entry setup:
+      • Candlesticks for recent price action
+      • MA20 and MA50 as subtle lines
+      • Up to 3 nearest support (green) and resistance (red) levels
+      • Entry zone band + stop and target lines in the right margin
+    """
+    fig = go.Figure()
+
+    # ------------------------------------------------------------------
+    # Candlestick (last 60 bars max for readability)
+    # ------------------------------------------------------------------
+    dates, closes = [], []
+    if history is not None and not history.empty:
+        hist = history.tail(60).copy()
+        dates = [d.to_pydatetime() if hasattr(d, "to_pydatetime") else d
+                 for d in hist.index]
+        dates = [d.replace(tzinfo=None) if hasattr(d, "tzinfo") and d.tzinfo else d
+                 for d in dates]
+        closes = hist["Close"].values
+
+        if all(c in hist.columns for c in ["Open", "High", "Low", "Close"]):
+            fig.add_trace(go.Candlestick(
+                x=dates,
+                open=hist["Open"],
+                high=hist["High"],
+                low=hist["Low"],
+                close=hist["Close"],
+                name="Price",
+                increasing=dict(line=dict(color=THEME["green"]),
+                                fillcolor="rgba(61,122,90,0.50)"),
+                decreasing=dict(line=dict(color=THEME["red"]),
+                                fillcolor="rgba(176,80,64,0.50)"),
+                showlegend=False,
+            ))
+        else:
+            fig.add_trace(go.Scatter(
+                x=dates, y=closes, mode="lines",
+                line=dict(color=THEME["accent"], width=2),
+                name="Close", showlegend=False,
+            ))
+
+        # MA20 and MA50 only — subtle, thin
+        full_closes = history["Close"].values
+        full_dates  = [d.to_pydatetime() if hasattr(d, "to_pydatetime") else d
+                      for d in history.index]
+        full_dates  = [d.replace(tzinfo=None) if hasattr(d, "tzinfo") and d.tzinfo else d
+                      for d in full_dates]
+        ma_cfg = {20: (THEME["accent_warm"], "dot"), 50: (THEME["accent"], "dash")}
+        for period, (colour, dash) in ma_cfg.items():
+            if len(full_closes) >= period:
+                ma_vals = [
+                    float(full_closes[max(0, i - period + 1):i + 1].mean())
+                    for i in range(len(full_closes))
+                ]
+                # Trim to the same window as the candlesticks
+                ma_vals  = ma_vals[-60:]
+                ma_dates = full_dates[-60:]
+                fig.add_trace(go.Scatter(
+                    x=ma_dates, y=ma_vals,
+                    mode="lines",
+                    line=dict(color=colour, width=1.2, dash=dash),
+                    opacity=0.7,
+                    name=f"MA{period}",
+                    hovertemplate=f"MA{period}: $%{{y:,.2f}}<extra></extra>",
+                ))
+
+    # ------------------------------------------------------------------
+    # S/R — 3 nearest levels per side, gamma walls preferred over pivots
+    # ------------------------------------------------------------------
+    levels = sr.get("levels", [])
+    non_ma = [l for l in levels if not l["source"].startswith("MA")]
+    supports    = sorted([l for l in non_ma if l["price"] < spot],
+                         key=lambda l: abs(l["price"] - spot))[:3]
+    resistances = sorted([l for l in non_ma if l["price"] > spot],
+                         key=lambda l: abs(l["price"] - spot))[:3]
+
+    for level in supports + resistances:
+        price  = level["price"]
+        src    = level["source"]
+        ltype  = level["type"]
+        colour = THEME["green"] if ltype == "support" else THEME["red"]
+        dash   = "dash" if src == "gamma_wall" else "dot"
+        label  = ("GW" if src == "gamma_wall" else "Pivot") + f" ${price:,.0f}"
+
+        # Line only — value shown on hover via an invisible scatter trace
+        fig.add_hline(
+            y=price,
+            line=dict(color=colour, width=2.0, dash=dash),
+            opacity=0.55,
+        )
+        # Invisible hover dot so the level is discoverable
+        fig.add_trace(go.Scatter(
+            x=[dates[-1]] if dates else [datetime.now()],
+            y=[price],
+            mode="markers",
+            marker=dict(color="rgba(0,0,0,0)", size=0),
+            showlegend=False,
+            hovertemplate=f"<b>{label}</b><br>{ltype.title()}<extra></extra>",
+        ))
+
+    # ------------------------------------------------------------------
+    # Spot  — line only, label shown in the strip below the chart
+    # ------------------------------------------------------------------
+    fig.add_hline(
+        y=spot,
+        line=dict(color=THEME["text"], width=2.5, dash="dash"),
+        opacity=0.55,
+    )
+
+    # ------------------------------------------------------------------
+    # Entry / Stop / Target  — lines/band only, labels in strip below
+    # ------------------------------------------------------------------
+    entry  = entry_info.get("entry")
+    stop   = entry_info.get("stop")
+    target = entry_info.get("target")
+
+    if entry is not None:
+        band_h = entry * 0.004
+        fig.add_hrect(
+            y0=entry - band_h, y1=entry + band_h,
+            fillcolor="rgba(192,128,80,0.18)", line_width=0, layer="above",
+        )
+
+    if stop is not None:
+        fig.add_hline(
+            y=stop,
+            line=dict(color=THEME["red"], width=2.5, dash="dot"),
+            opacity=0.70,
+        )
+
+    if target is not None:
+        fig.add_hline(
+            y=target,
+            line=dict(color=THEME["green"], width=2.5, dash="dot"),
+            opacity=0.70,
+        )
+
+    # ------------------------------------------------------------------
+    # Layout
+    # ------------------------------------------------------------------
+    _lo = {**LAYOUT_DEFAULTS, "margin": dict(l=65, r=20, t=50, b=50)}
+    fig.update_layout(
+        **_lo,
+        title=dict(
+            text=f"<b>{ticker}</b>  \u2014  Potential Entry Setup",
+            font=dict(size=16, color=THEME["text"]), x=0.01,
+        ),
+        xaxis=dict(
+            **_axis_style(),
+            title="",
+            rangeslider=dict(visible=False),
+        ),
+        yaxis=dict(**_axis_style(), title="Price ($)", tickprefix="$", autorange=True),
+        showlegend=True,
+        legend=dict(
+            bgcolor="rgba(247,245,240,0.85)",
+            bordercolor=THEME["border_light"],
+            borderwidth=1,
+            font=dict(size=12),
+            orientation="h",
+            x=0.5, xanchor="center", y=1.0, yanchor="bottom",
+        ),
+        height=600,
         hovermode="x unified",
     )
 

@@ -15,8 +15,17 @@ from analysis import (
     percentile_levels,
     max_pain,
     iv_smile,
+    support_resistance_levels,
+    entry_analysis,
+    put_call_ratio,
 )
-from charts import build_forecast_chart, build_distribution_chart, build_iv_smile_chart, build_oi_chart
+from charts import (
+    build_forecast_chart,
+    build_distribution_chart,
+    build_iv_smile_chart,
+    build_oi_chart,
+    build_sr_chart,
+)
 
 # ======================================================================
 # Theme
@@ -224,15 +233,20 @@ def run_analysis(ticker: str, expiry: str, spot: float, r: float, dte: float):
     mp = max_pain(calls, puts)
     iv_df = iv_smile(calls, puts, spot)
 
-    hist_days = min(max(int(dte), 30), 60)
+    hist_days = min(max(int(dte), 30), 200)
     history = m.historical_prices(hist_days)
 
-    return dist, em, probs, pctiles, mp, iv_df, calls, puts, history
+    # New: support/resistance, entry analysis, put/call ratio
+    sr = support_resistance_levels(history, calls, puts, spot)
+    entry = entry_analysis(dist, em, probs, pctiles, sr, spot)
+    pcr = put_call_ratio(calls, puts)
+
+    return dist, em, probs, pctiles, mp, iv_df, calls, puts, history, sr, entry, pcr
 
 
 try:
     with st.spinner("Running analysis …"):
-        dist, em, probs, pctiles, mp, iv_df, calls, puts, history = run_analysis(
+        dist, em, probs, pctiles, mp, iv_df, calls, puts, history, sr, entry_info, pcr = run_analysis(
             ticker_input, expiry, spot, r, dte
         )
 except ValueError as e:
@@ -241,6 +255,30 @@ except ValueError as e:
 except Exception as e:
     st.error(f"Unexpected error: {e}")
     st.stop()
+
+
+# ======================================================================
+# Helper – horizontal label strip rendered below a chart
+# ======================================================================
+
+def _label_strip(items: list[tuple[str, str, str]]) -> None:
+    """
+    Render a row of labelled values as styled HTML below a chart.
+    items: list of (label, value, hex_colour)
+    """
+    parts = []
+    for label, value, colour in items:
+        parts.append(
+            f'<div style="display:inline-block;margin-right:2.5rem;">'
+            f'<span style="font-size:0.8rem;color:#9a9a9a;text-transform:uppercase;'
+            f'letter-spacing:0.05em;display:block;margin-bottom:2px">{label}</span>'
+            f'<span style="font-size:1.1rem;font-weight:600;color:{colour}">{value}</span>'
+            f'</div>'
+        )
+    st.markdown(
+        f'<div style="padding:0.6rem 0 1rem 0;border-top:1px solid #d8d4cc;">' + "".join(parts) + "</div>",
+        unsafe_allow_html=True,
+    )
 
 
 # ======================================================================
@@ -273,6 +311,15 @@ mp_display = f"${mp:,.2f}" if not np.isnan(mp) else "N/A"
 c5.metric("Max Pain", mp_display)
 
 
+# Pre-compute entry/sentiment display values used later in the page
+bias_label = entry_info["bias"].title()
+
+pcr_vol_display = f"{pcr['pcr_vol']:.2f}" if not np.isnan(pcr['pcr_vol']) else "N/A"
+pcr_oi_display  = f"{pcr['pcr_oi']:.2f}"  if not np.isnan(pcr['pcr_oi'])  else "N/A"
+
+rr_display = f"{entry_info['risk_reward']:.1f}×" if not np.isnan(entry_info['risk_reward']) else "N/A"
+
+
 # ======================================================================
 # Main chart
 # ======================================================================
@@ -295,6 +342,14 @@ st.plotly_chart(
     config={"displayModeBar": True, "scrollZoom": True},
 )
 
+_label_strip([
+    ("Spot",       f"${spot:,.2f}",          "#1c1c1c"),
+    ("Mean",       f"${dist['mean']:,.2f}",   "#4d6a61"),
+    ("Max Pain",   mp_display,                "#c08050"),
+    ("Range low",  f"${em['lower']:,.2f}",    "#b05040"),
+    ("Range high", f"${em['upper']:,.2f}",    "#3d7a5a"),
+])
+
 
 # ======================================================================
 # Distribution chart
@@ -312,6 +367,44 @@ st.plotly_chart(
     width="stretch",
     config={"displayModeBar": True, "scrollZoom": True},
 )
+
+_label_strip([
+    ("10th pct",  f"${pctiles.get(10, 0):,.2f}",  "#b05040"),
+    ("25th pct",  f"${pctiles.get(25, 0):,.2f}",  "#c08050"),
+    ("50th pct",  f"${pctiles.get(50, 0):,.2f}",  "#4d6a61"),
+    ("75th pct",  f"${pctiles.get(75, 0):,.2f}",  "#4d6a61"),
+    ("90th pct",  f"${pctiles.get(90, 0):,.2f}",  "#3d7a5a"),
+])
+
+
+# ======================================================================
+# S/R + Entry Setup chart
+# ======================================================================
+
+st.plotly_chart(
+    build_sr_chart(
+        ticker=ticker_input,
+        history=history,
+        spot=spot,
+        sr=sr,
+        entry_info=entry_info,
+    ),
+    width="stretch",
+    config={"displayModeBar": True, "scrollZoom": True},
+)
+
+_rr = f"{entry_info['risk_reward']:.1f}\u00d7" if not np.isnan(entry_info['risk_reward']) else "N/A"
+_bias_colour = "#3d7a5a" if entry_info['bias'] == "bullish" else "#b05040" if entry_info['bias'] == "bearish" else "#1c1c1c"
+_label_strip([
+    ("Bias",          bias_label,                         _bias_colour),
+    ("Spot",          f"${spot:,.2f}",                    "#1c1c1c"),
+    ("Entry",         f"${entry_info['entry']:,.2f}",      "#c08050"),
+    ("Stop",          f"${entry_info['stop']:,.2f}",       "#b05040"),
+    ("Target",        f"${entry_info['target']:,.2f}",     "#3d7a5a"),
+    ("R/R",           _rr,                                 "#4d6a61"),
+    ("Put/Call (Vol)", pcr_vol_display,                    "#555555"),
+    ("Sentiment",     pcr['sentiment'].title(),            "#555555"),
+])
 
 
 # ======================================================================
@@ -367,6 +460,61 @@ with st.expander("Distribution Details", expanded=False):
         "Breeden-Litzenberger identity. It represents the market's risk-neutral "
         "probability assessment for the underlying's price at expiry."
     )
+
+
+# ======================================================================
+# Entry Setup details
+# ======================================================================
+
+with st.expander("Entry Setup Details", expanded=False):
+    st.markdown(
+        "These levels are derived from the options-implied distribution, "
+        "historical price pivots, high open-interest gamma walls and moving averages. "
+        "They are informational — always apply your own risk management."
+    )
+    for note in entry_info["notes"]:
+        st.markdown(f"- {note}")
+
+    sr_rows = []
+    for level in sorted(sr["levels"], key=lambda l: l["price"]):
+        sr_rows.append({
+            "Price": f"${level['price']:,.2f}",
+            "Type":  level["type"].title(),
+            "Source": level["source"].replace("_", " ").title(),
+            "Strength": "★" * level["strength"],
+        })
+    if sr_rows:
+        st.markdown("#### Key Levels")
+        st.table(sr_rows)
+
+    ma = sr.get("moving_avgs", {})
+    ma_rows = [
+        {"MA": f"MA{p}", "Value": f"${v:,.2f}" if v is not None else "N/A"}
+        for p, v in sorted(ma.items())
+    ]
+    if ma_rows:
+        st.markdown("#### Moving Averages")
+        st.table(ma_rows)
+
+
+# ======================================================================
+# Put/Call Ratio details
+# ======================================================================
+
+with st.expander("Put/Call Ratio", expanded=False):
+    st.markdown(
+        "The Put/Call Ratio (PCR) measures relative options activity. "
+        "A PCR **above 1.2** is broadly bearish sentiment; **below 0.7** is broadly bullish."
+    )
+    p1, p2, p3, p4 = st.columns(4)
+    p1.metric("PCR (Volume)",    pcr_vol_display)
+    p2.metric("PCR (OI)",        pcr_oi_display)
+    p3.metric("Call Volume",     f"{int(pcr['call_volume']):,}")
+    p4.metric("Put Volume",      f"{int(pcr['put_volume']):,}")
+    p1b, p2b = st.columns(2)
+    p1b.metric("Call OI",        f"{int(pcr['call_oi']):,}")
+    p2b.metric("Put OI",         f"{int(pcr['put_oi']):,}")
+    st.caption(f"Sentiment signal: **{pcr['sentiment'].title()}**")
 
 
 # ======================================================================

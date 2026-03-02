@@ -183,7 +183,8 @@ class CryptoMarketData:
     def historical_prices(self, days: int) -> pd.DataFrame:
         """Fetch *days* of daily OHLCV history from Yahoo Finance."""
         yf_ticker = yf.Ticker(f"{self.currency}-USD")
-        hist = yf_ticker.history(period=f"{days + 5}d")
+        # interval="1d" is explicit so we always get daily OHLCV candles
+        hist = yf_ticker.history(period=f"{days + 5}d", interval="1d")
         if hist.empty:
             return pd.DataFrame(columns=["Open", "High", "Low", "Close", "Volume"])
         return hist.tail(days)[["Open", "High", "Low", "Close", "Volume"]]

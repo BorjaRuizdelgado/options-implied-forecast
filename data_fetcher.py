@@ -42,7 +42,8 @@ class MarketData:
         The index is a DatetimeIndex.
         """
         # yfinance "period" is calendar days, but we pad a bit to be safe
-        hist = self.yf_ticker.history(period=f"{days + 5}d")
+        # interval="1d" is explicit so we always get daily OHLCV candles
+        hist = self.yf_ticker.history(period=f"{days + 5}d", interval="1d")
         if hist.empty:
             return pd.DataFrame(columns=["Open", "High", "Low", "Close", "Volume"])
         # Keep only last *days* rows

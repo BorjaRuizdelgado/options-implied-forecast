@@ -1,0 +1,139 @@
+import React from "react";
+import Sidebar from "./components/Sidebar.jsx";
+import KpiRow from "./components/KpiRow.jsx";
+import LabelStrip from "./components/LabelStrip.jsx";
+import ForecastChart from "./components/ForecastChart.jsx";
+import DistributionChart from "./components/DistributionChart.jsx";
+import IvSmileChart from "./components/IvSmileChart.jsx";
+import OiChart from "./components/OiChart.jsx";
+import SrChart from "./components/SrChart.jsx";
+import {
+  PercentileExpander,
+  DistributionExpander,
+  EntryExpander,
+  PcrExpander,
+} from "./components/Expanders.jsx";
+import { daysToExpiry } from "./lib/fetcher.js";
+import { fmt } from "./lib/format.js";
+import { forecastLabels, distributionLabels, entryLabels } from "./lib/labels.js";
+import useOptionsAnalysis from "./hooks/useOptionsAnalysis.js";
+
+export default function App() {
+  const {
+    loading,
+    error,
+    ticker,
+    expirations,
+    selectedExpiry,
+    analysis,
+    handleAnalyse,
+    handleExpiryChange,
+  } = useOptionsAnalysis();
+
+  return (
+    <div className="app">
+      <Sidebar
+        onAnalyse={handleAnalyse}
+        expirations={expirations}
+        selectedExpiry={selectedExpiry}
+        onExpiryChange={handleExpiryChange}
+        loading={loading}
+        daysToExpiry={daysToExpiry}
+      />
+
+      <main className="main">
+        {/* Landing state */}
+        {!ticker && !loading && !error && (
+          <div className="landing">
+            <h1>Options-Implied Price Forecast</h1>
+            <p className="info-box">
+              Enter a ticker symbol in the sidebar and click{" "}
+              <strong>Analyse</strong> to get started.
+            </p>
+          </div>
+        )}
+
+        {/* Loading */}
+        {loading && !analysis && (
+          <div className="loading">
+            <div className="spinner" />
+            <span>
+              {ticker
+                ? `Running analysis for ${ticker}…`
+                : "Fetching data…"}
+            </span>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && <div className="error-box">{error}</div>}
+
+        {/* Analysis results */}
+        {analysis && (
+          <>
+            <h1>{ticker}</h1>
+            <p className="subtitle">
+              Current price: <strong>{fmt(analysis.spot)}</strong> · Expiry:{" "}
+              <strong>{analysis.expiry}</strong> ({Math.round(analysis.dte)}{" "}
+              days)
+            </p>
+
+            <KpiRow
+              dist={analysis.dist}
+              spot={analysis.spot}
+              em={analysis.em}
+              probs={analysis.probs}
+              mp={analysis.mp}
+            />
+
+            <ForecastChart
+              ticker={ticker}
+              expiry={analysis.expiry}
+              spot={analysis.spot}
+              dist={analysis.dist}
+              em={analysis.em}
+              pctiles={analysis.pctiles}
+              mp={analysis.mp}
+              history={analysis.history}
+              dte={analysis.dte}
+            />
+            <LabelStrip items={forecastLabels(analysis)} />
+
+            <DistributionChart
+              dist={analysis.dist}
+              spot={analysis.spot}
+              pctiles={analysis.pctiles}
+              mp={analysis.mp}
+            />
+            <LabelStrip items={distributionLabels(analysis)} />
+
+            <SrChart
+              ticker={ticker}
+              history={analysis.history}
+              spot={analysis.spot}
+              sr={analysis.sr}
+              entryInfo={analysis.entry}
+            />
+            <LabelStrip items={entryLabels(analysis)} />
+
+            <div className="chart-row">
+              <IvSmileChart ivData={analysis.ivData} spot={analysis.spot} />
+              <OiChart calls={analysis.calls} puts={analysis.puts} spot={analysis.spot} />
+            </div>
+
+            <PercentileExpander pctiles={analysis.pctiles} spot={analysis.spot} />
+            <DistributionExpander dist={analysis.dist} />
+            <EntryExpander entryInfo={analysis.entry} sr={analysis.sr} />
+            <PcrExpander pcr={analysis.pcr} />
+
+            <hr />
+            <p className="footnote">
+              This tool shows what is already priced into traded options — it
+              does not predict the future.
+            </p>
+          </>
+        )}
+      </main>
+    </div>
+  );
+}

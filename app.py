@@ -38,7 +38,7 @@ GREEN = "#3d7a5a"
 RED = "#b05040"
 
 st.set_page_config(
-    page_title="Options-Implied Forecast",
+    page_title="Ruizdelgado - Forecast",
     page_icon="favicon.png",
     layout="wide",
     initial_sidebar_state="expanded",

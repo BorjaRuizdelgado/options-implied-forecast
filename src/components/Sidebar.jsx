@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import SupportVault from "./SupportVault.jsx";
 
 export default function Sidebar({
   onAnalyse,
@@ -24,8 +25,8 @@ export default function Sidebar({
       </p>
 
       <form onSubmit={handleSubmit}>
-        <div className="field">
-          <label htmlFor="ticker">Ticker symbol</label>
+        <label htmlFor="ticker" className="field-label">Ticker symbol</label>
+        <div className="ticker-row">
           <input
             id="ticker"
             type="text"
@@ -33,11 +34,10 @@ export default function Sidebar({
             onChange={(e) => setTicker(e.target.value.toUpperCase())}
             placeholder="e.g. AAPL, TSLA, SPY …"
           />
+          <button className="btn" type="submit" disabled={loading}>
+            {loading ? "Loading…" : "Analyse"}
+          </button>
         </div>
-
-        <button className="btn" type="submit" disabled={loading} style={{ marginTop: "0.75rem" }}>
-          {loading ? "Loading…" : "Analyse"}
-        </button>
       </form>
 
       {expirations && expirations.length > 0 && (
@@ -59,6 +59,10 @@ export default function Sidebar({
           </select>
         </div>
       )}
+
+      <div className="sidebar-vault">
+        <SupportVault />
+      </div>
     </aside>
   );
 }

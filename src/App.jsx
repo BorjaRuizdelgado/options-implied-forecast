@@ -13,6 +13,7 @@ import {
   EntryExpander,
   PcrExpander,
 } from "./components/Expanders.jsx";
+import SupportVault from "./components/SupportVault.jsx";
 import { daysToExpiry } from "./lib/fetcher.js";
 import { fmt } from "./lib/format.js";
 import { forecastLabels, distributionLabels, entryLabels } from "./lib/labels.js";
@@ -131,6 +132,8 @@ export default function App() {
               This tool shows what is already priced into traded options — it
               does not predict the future.
             </p>
+
+            <SupportVault />
           </>
         )}
       </main>

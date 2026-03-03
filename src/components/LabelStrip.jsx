@@ -1,4 +1,5 @@
 import React from "react";
+import Tooltip from "./Tooltip.jsx";
 
 /**
  * Horizontal label strip rendered below a chart.
@@ -11,12 +12,7 @@ export default function LabelStrip({ items }) {
         <div className="label-strip-item" key={i}>
           <div className="label-strip-label">
             {item.label}
-            {item.tooltip && (
-              <span className="tip-wrap">
-                <span className="tip-icon">?</span>
-                <span className="tip-box">{item.tooltip}</span>
-              </span>
-            )}
+            <Tooltip text={item.tooltip} />
           </div>
           <span className="label-strip-value" style={{ color: item.color }}>
             {item.value}

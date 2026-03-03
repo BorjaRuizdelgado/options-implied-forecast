@@ -31,20 +31,6 @@ The app runs on **Cloudflare Pages** with a Worker that proxies Yahoo Finance (s
 npm run deploy     # builds + deploys via wrangler
 ```
 
-## Architecture
-
-| Path | Purpose |
-|---|---|
-| `src/worker.js` | Cloudflare Worker — API proxy for Yahoo Finance + Bybit |
-| `src/App.jsx` | Main React component |
-| `src/components/` | Chart and UI components (Plotly) |
-| `src/lib/analysis.js` | Breeden-Litzenberger distribution, metrics, IV smile |
-| `src/lib/fetcher.js` | API client |
-| `src/lib/spline.js` | Cubic spline interpolation |
-| `src/lib/theme.js` | Plotly theme constants |
-| `src/styles.css` | Global styles |
-| `wrangler.jsonc` | Cloudflare Worker configuration |
-
 ## Data Sources
 
 - **Stocks / ETFs** — Yahoo Finance (via cookie+crumb auth proxy)

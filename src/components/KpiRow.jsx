@@ -1,14 +1,6 @@
 import React from "react";
-
-function Tooltip({ text }) {
-  if (!text) return null;
-  return (
-    <span className="tip-wrap">
-      <span className="tip-icon">?</span>
-      <span className="tip-box">{text}</span>
-    </span>
-  );
-}
+import Tooltip from "./Tooltip.jsx";
+import { fmt } from "../lib/format.js";
 
 function KpiCard({ label, value, delta, deltaPositive, tooltip }) {
   return (
@@ -29,15 +21,12 @@ function KpiCard({ label, value, delta, deltaPositive, tooltip }) {
 
 export default function KpiRow({ dist, spot, em, probs, mp }) {
   const meanChg = ((dist.mean - spot) / spot) * 100;
-  const mpDisplay = !isNaN(mp)
-    ? `$${mp.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    : "N/A";
 
   return (
     <div className="kpi-row">
       <KpiCard
         label="Expected Price"
-        value={`$${dist.mean.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+        value={fmt(dist.mean)}
         deltaPositive={meanChg >= 0}
         tooltip="Options-implied expected price at expiry, derived from the Breeden-Litzenberger probability distribution."
       />
@@ -59,7 +48,7 @@ export default function KpiRow({ dist, spot, em, probs, mp }) {
       />
       <KpiCard
         label="Max Pain"
-        value={mpDisplay}
+        value={fmt(mp)}
         tooltip="Strike price where the most options expire worthless, causing maximum pain to option holders."
       />
     </div>

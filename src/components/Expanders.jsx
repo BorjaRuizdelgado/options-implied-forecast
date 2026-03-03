@@ -1,9 +1,5 @@
 import React from "react";
-
-function fmt(val) {
-  if (val == null || isNaN(val)) return "N/A";
-  return `$${Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import { fmt, fmtDecimal, fmtInt } from "../lib/format.js";
 
 export function PercentileExpander({ pctiles, spot }) {
   const rows = Object.entries(pctiles)
@@ -152,8 +148,6 @@ export function EntryExpander({ entryInfo, sr }) {
 }
 
 export function PcrExpander({ pcr }) {
-  const fmtN = (v) => (isNaN(v) ? "N/A" : v.toFixed(2));
-  const fmtI = (v) => Number(v).toLocaleString();
 
   return (
     <details className="expander">
@@ -167,29 +161,29 @@ export function PcrExpander({ pcr }) {
         <div className="metrics-grid cols-4" style={{ marginTop: "0.75rem" }}>
           <div className="metric-card">
             <div className="metric-label">PCR (Volume)</div>
-            <div className="metric-value">{fmtN(pcr.pcrVol)}</div>
+            <div className="metric-value">{fmtDecimal(pcr.pcrVol)}</div>
           </div>
           <div className="metric-card">
             <div className="metric-label">PCR (OI)</div>
-            <div className="metric-value">{fmtN(pcr.pcrOi)}</div>
+            <div className="metric-value">{fmtDecimal(pcr.pcrOi)}</div>
           </div>
           <div className="metric-card">
             <div className="metric-label">Call Volume</div>
-            <div className="metric-value">{fmtI(pcr.callVolume)}</div>
+            <div className="metric-value">{fmtInt(pcr.callVolume)}</div>
           </div>
           <div className="metric-card">
             <div className="metric-label">Put Volume</div>
-            <div className="metric-value">{fmtI(pcr.putVolume)}</div>
+            <div className="metric-value">{fmtInt(pcr.putVolume)}</div>
           </div>
         </div>
         <div className="metrics-grid cols-2">
           <div className="metric-card">
             <div className="metric-label">Call OI</div>
-            <div className="metric-value">{fmtI(pcr.callOi)}</div>
+            <div className="metric-value">{fmtInt(pcr.callOi)}</div>
           </div>
           <div className="metric-card">
             <div className="metric-label">Put OI</div>
-            <div className="metric-value">{fmtI(pcr.putOi)}</div>
+            <div className="metric-value">{fmtInt(pcr.putOi)}</div>
           </div>
         </div>
         <p style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginTop: "0.5rem" }}>

@@ -21,11 +21,11 @@ npm install
 npm run dev        # local dev server with hot reload
 ```
 
-Open the URL shown in your terminal (usually `http://localhost:5173`). Enter any US stock ticker (e.g. AAPL, TSLA, SPY) or crypto ticker (BTC, ETH) and pick an expiration date.
+Open the URL shown in your terminal (usually `http://localhost:5173`). Enter any US stock ticker (e.g. AAPL, TSLA, SPY) or crypto ticker (BTC, ETH, SOL, XRP, DOGE) and pick an expiration date.
 
 ## Deploy
 
-The app runs on **Cloudflare Pages** with a Worker that proxies Yahoo Finance (stocks) and Deribit (crypto options).
+The app runs on **Cloudflare Pages** with a Worker that proxies Yahoo Finance (stocks) and Bybit (crypto options).
 
 ```bash
 npm run deploy     # builds + deploys via wrangler
@@ -35,7 +35,7 @@ npm run deploy     # builds + deploys via wrangler
 
 | Path | Purpose |
 |---|---|
-| `src/worker.js` | Cloudflare Worker — API proxy for Yahoo Finance + Deribit |
+| `src/worker.js` | Cloudflare Worker — API proxy for Yahoo Finance + Bybit |
 | `src/App.jsx` | Main React component |
 | `src/components/` | Chart and UI components (Plotly) |
 | `src/lib/analysis.js` | Breeden-Litzenberger distribution, metrics, IV smile |
@@ -48,7 +48,7 @@ npm run deploy     # builds + deploys via wrangler
 ## Data Sources
 
 - **Stocks / ETFs** — Yahoo Finance (via cookie+crumb auth proxy)
-- **Crypto** — Deribit public API for options (BTC, ETH), Yahoo Finance for history. Other crypto tickers (SOL, XRP, etc.) fall back to Yahoo Finance.
+- **Crypto** — Bybit public API for options (BTC, ETH, SOL, XRP, DOGE), Yahoo Finance for price history. Other crypto tickers fall back to Yahoo Finance.
 
 ## Methodology
 
@@ -71,7 +71,7 @@ In practice:
 - Yahoo Finance data can be delayed or stale for illiquid options.
 - Wide bid-ask spreads on far OTM options add noise to the distribution tails.
 - The analysis is a snapshot — it changes as options prices update.
-- Crypto options (Deribit) are currently available for BTC and ETH only. Other crypto tickers use Yahoo Finance which may have limited options data.
+- Crypto options via Bybit cover BTC, ETH, SOL, XRP, and DOGE. Other crypto tickers fall back to Yahoo Finance which may have limited options data.
 
 ## Contributing
 

@@ -38,14 +38,12 @@ export default function KpiRow({ dist, spot, em, probs, mp }) {
       <KpiCard
         label="Expected Price"
         value={`$${dist.mean.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-        delta={`${meanChg >= 0 ? "+" : ""}${meanChg.toFixed(1)}%`}
         deltaPositive={meanChg >= 0}
         tooltip="Options-implied expected price at expiry, derived from the Breeden-Litzenberger probability distribution."
       />
       <KpiCard
         label="Expected Move"
         value={`\u00B1${em.movePct.toFixed(1)}%`}
-        delta={`${(dist.mean - spot).toFixed(2)}`}
         deltaPositive={dist.mean >= spot}
         tooltip="Market-implied \u00B11 standard deviation price range. Delta shows implied mean change vs spot."
       />

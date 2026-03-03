@@ -47,7 +47,7 @@ Thanks for your interest in improving **Options-Implied Price Forecast**! Contri
 
 | Path | Purpose |
 |---|---|
-| `src/worker.js` | Cloudflare Worker — API proxy for Yahoo Finance + Deribit |
+| `src/worker.js` | Cloudflare Worker — API proxy for Yahoo Finance + Bybit |
 | `src/App.jsx` | Main React app component |
 | `src/components/` | Chart and UI components (Plotly) |
 | `src/lib/analysis.js` | Distribution, metrics, IV smile calculations |

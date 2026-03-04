@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { fetchOptions, fetchChain, fetchHistory, fetchRate, daysToExpiry } from "../lib/fetcher.js";
 import {
   impliedDistribution,
@@ -189,6 +189,12 @@ export default function useOptionsAnalysis() {
       setExpirations(validExps);
       setSelectedExpiry(validExps[0]);
 
+      // Update URL to reflect the ticker (e.g. /BTC)
+      const path = `/${encodeURIComponent(resolvedTicker)}`;
+      if (window.location.pathname !== path) {
+        window.history.pushState(null, "", path);
+      }
+
       await runAnalysis(resolvedTicker, validExps[0], optData.price, rateData.rate, validExps, weighted);
     } catch (err) {
       setError(err.message);
@@ -196,6 +202,19 @@ export default function useOptionsAnalysis() {
       setLoading(false);
     }
   }, [runAnalysis, weighted]);
+
+  // ---- Auto-analyse from URL path (e.g. /SPY, /BTC) ----
+
+  const didAutoRun = useRef(false);
+  useEffect(() => {
+    if (didAutoRun.current) return;
+    const path = window.location.pathname.replace(/^\//, "").replace(/\/$/, "");
+    if (path && !path.includes("/")) {
+      const urlTicker = decodeURIComponent(path).toUpperCase();
+      didAutoRun.current = true;
+      handleAnalyse(urlTicker);
+    }
+  }, [handleAnalyse]);
 
   // ---- Public: change expiry ----
 

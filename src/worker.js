@@ -443,7 +443,14 @@ export default {
         return await handleRate();
       }
 
-      return env.ASSETS.fetch(request);
+      // SPA fallback: serve index.html for any non-API, non-asset path
+      // (e.g. /BTC, /SPY) so client-side routing can handle it.
+      const assetRes = await env.ASSETS.fetch(request);
+      if (assetRes.status === 404 && !url.pathname.startsWith("/api/")) {
+        const indexReq = new Request(new URL("/", url.origin), request);
+        return env.ASSETS.fetch(indexReq);
+      }
+      return assetRes;
     } catch (err) {
       return jsonResp({ error: err.message }, 500);
     }

@@ -11,8 +11,13 @@ export default function Sidebar({
   daysToExpiry,
   weighted,
   onWeightedToggle,
+  activeTicker,
 }) {
-  const [ticker, setTicker] = useState();
+  const [ticker, setTicker] = useState(() => {
+    // Pre-fill from URL path if present (e.g. /SPY → "SPY")
+    const path = window.location.pathname.replace(/^\//, "").replace(/\/$/, "");
+    return path && !path.includes("/") ? decodeURIComponent(path).toUpperCase() : "";
+  });
   const [collapsed, setCollapsed] = useState(false);
 
   function handleSubmit(e) {

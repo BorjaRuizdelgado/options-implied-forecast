@@ -59,6 +59,7 @@ export default function App() {
         daysToExpiry={daysToExpiry}
         weighted={weighted}
         onWeightedToggle={handleWeightedToggle}
+        activeTicker={ticker}
       />
 
       <main className="main">

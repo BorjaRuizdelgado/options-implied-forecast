@@ -520,6 +520,172 @@ export function entryAnalysis(dist, em, probs, pctiles, sr, spot) {
 }
 
 // =================================================================
+// Multi-expiry weighted merge
+// =================================================================
+
+/**
+ * Compute inverse-DTE weights for a list of expiry analyses.
+ * Closer expirations get exponentially more weight.
+ * @param {number[]} dtes - Days-to-expiry for each chain
+ * @returns {number[]} normalised weights summing to 1
+ */
+export function expiryWeights(dtes) {
+  // Use 1/sqrt(DTE) for a balanced decay — gives near-term more weight
+  // without completely ignoring longer-dated chains.
+  const raw = dtes.map((d) => 1 / Math.sqrt(Math.max(d, 0.5)));
+  const total = raw.reduce((a, b) => a + b, 0);
+  return raw.map((w) => w / total);
+}
+
+/**
+ * Merge multiple implied distributions onto a common strike grid.
+ * Re-samples each PDF onto the union range, then blends with weights.
+ */
+export function mergeDistributions(dists, weights, nPoints = 500) {
+  if (dists.length === 1) return dists[0];
+
+  // Union strike range
+  let lo = Infinity, hi = -Infinity;
+  for (const d of dists) {
+    lo = Math.min(lo, d.strikes[0]);
+    hi = Math.max(hi, d.strikes[d.strikes.length - 1]);
+  }
+  const K = linspace(lo, hi, nPoints);
+  const dK = K[1] - K[0];
+
+  // Resample each PDF onto K via linear interpolation, then weight
+  const pdf = new Float64Array(nPoints);
+
+  for (let di = 0; di < dists.length; di++) {
+    const d = dists[di];
+    const w = weights[di];
+    for (let i = 0; i < nPoints; i++) {
+      const val = K[i];
+      // linear interp in source PDF
+      if (val <= d.strikes[0]) {
+        pdf[i] += w * d.pdf[0];
+      } else if (val >= d.strikes[d.strikes.length - 1]) {
+        pdf[i] += w * d.pdf[d.pdf.length - 1];
+      } else {
+        const idx = searchSorted(d.strikes, val);
+        const x0 = d.strikes[idx - 1], x1 = d.strikes[idx];
+        const y0 = d.pdf[idx - 1], y1 = d.pdf[idx];
+        const t = (val - x0) / (x1 - x0);
+        pdf[i] += w * (y0 + t * (y1 - y0));
+      }
+    }
+  }
+
+  // Re-normalise blended PDF
+  const pdfTotal = trapezoid(pdf, K);
+  if (pdfTotal > 0) {
+    for (let i = 0; i < nPoints; i++) pdf[i] /= pdfTotal;
+  }
+
+  // Rebuild CDF
+  const cdf = new Float64Array(nPoints);
+  let cumSum = 0;
+  for (let i = 0; i < nPoints; i++) {
+    cumSum += pdf[i] * dK;
+    cdf[i] = Math.min(cumSum, 1);
+  }
+
+  // Summary stats
+  const kPdf = new Float64Array(nPoints);
+  for (let i = 0; i < nPoints; i++) kPdf[i] = K[i] * pdf[i];
+  const mean = trapezoid(kPdf, K);
+
+  const varArr = new Float64Array(nPoints);
+  for (let i = 0; i < nPoints; i++) varArr[i] = (K[i] - mean) ** 2 * pdf[i];
+  const variance = trapezoid(varArr, K);
+  const std = Math.sqrt(Math.max(variance, 0));
+
+  let skew = 0;
+  if (std > 0) {
+    const skewArr = new Float64Array(nPoints);
+    for (let i = 0; i < nPoints; i++)
+      skewArr[i] = ((K[i] - mean) / std) ** 3 * pdf[i];
+    skew = trapezoid(skewArr, K);
+  }
+
+  const idxMedian = Math.min(searchSorted(cdf, 0.5), nPoints - 1);
+  const median = K[idxMedian];
+
+  return { strikes: K, pdf, cdf, mean, median, std, skew };
+}
+
+/**
+ * Weighted-average merge of expected-move objects.
+ */
+export function mergeExpectedMoves(ems, weights, spot) {
+  if (ems.length === 1) return ems[0];
+
+  let movePct = 0;
+  for (let i = 0; i < ems.length; i++) movePct += weights[i] * ems[i].movePct;
+
+  const moveAbs = (movePct / 100) * spot;
+  return {
+    atmStrike: ems[0].atmStrike,
+    callPrice: ems[0].callPrice,
+    putPrice: ems[0].putPrice,
+    straddle: ems[0].straddle,
+    moveAbs,
+    movePct,
+    upper: spot + moveAbs,
+    lower: spot - moveAbs,
+  };
+}
+
+/**
+ * Merge max-pain values (weighted average).
+ */
+export function mergeMaxPain(mps, weights) {
+  if (mps.length === 1) return mps[0];
+  let val = 0;
+  for (let i = 0; i < mps.length; i++) {
+    if (!isNaN(mps[i])) val += weights[i] * mps[i];
+  }
+  return val;
+}
+
+/**
+ * Merge IV smile data from multiple chains.
+ * Keeps all rows, tagged with their expiry weight for potential use.
+ */
+export function mergeIvSmiles(smiles) {
+  // Flatten all rows — charts can display all of them
+  return smiles.flat();
+}
+
+/**
+ * Merge put/call ratio across chains (weighted by OI contribution).
+ */
+export function mergePutCallRatios(pcrs, weights) {
+  if (pcrs.length === 1) return pcrs[0];
+
+  let pVol = 0, cVol = 0, pOi = 0, cOi = 0;
+  for (let i = 0; i < pcrs.length; i++) {
+    const w = weights[i];
+    pVol += w * pcrs[i].putVolume;
+    cVol += w * pcrs[i].callVolume;
+    pOi += w * pcrs[i].putOi;
+    cOi += w * pcrs[i].callOi;
+  }
+
+  const pcrVol = cVol > 0 ? pVol / cVol : NaN;
+  const pcrOi = cOi > 0 ? pOi / cOi : NaN;
+
+  let sentiment;
+  if (!isNaN(pcrVol)) {
+    sentiment = pcrVol > 1.2 ? "bearish" : pcrVol < 0.7 ? "bullish" : "neutral";
+  } else {
+    sentiment = "unknown";
+  }
+
+  return { pcrVol, pcrOi, putVolume: pVol, callVolume: cVol, putOi: pOi, callOi: cOi, sentiment };
+}
+
+// =================================================================
 // Put/Call ratio
 // =================================================================
 

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import SupportVault from "./SupportVault.jsx";
+import Tooltip from "./Tooltip.jsx";
 
 export default function Sidebar({
   onAnalyse,
@@ -8,6 +9,8 @@ export default function Sidebar({
   onExpiryChange,
   loading,
   daysToExpiry,
+  weighted,
+  onWeightedToggle,
 }) {
   const [ticker, setTicker] = useState();
   const [collapsed, setCollapsed] = useState(false);
@@ -46,23 +49,39 @@ export default function Sidebar({
           </form>
 
           {expirations && expirations.length > 0 && (
-            <div className="field">
-              <label htmlFor="expiry">Expiration</label>
-              <select
-                id="expiry"
-                value={selectedExpiry?.timestamp ?? ""}
-                onChange={(e) => onExpiryChange(e.target.value)}
-              >
-                {expirations.map((exp) => {
-                  const dte = daysToExpiry(exp.date);
-                  return (
-                    <option key={exp.timestamp} value={exp.timestamp}>
-                      {exp.date} ({Math.round(dte)}d)
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
+            <>
+              <div className="field">
+                <label htmlFor="expiry">Expiration</label>
+                <select
+                  id="expiry"
+                  value={selectedExpiry?.timestamp ?? ""}
+                  onChange={(e) => onExpiryChange(e.target.value)}
+                >
+                  {expirations.map((exp) => {
+                    const dte = daysToExpiry(exp.date);
+                    return (
+                      <option key={exp.timestamp} value={exp.timestamp}>
+                        {exp.date} ({Math.round(dte)}d)
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div className="field field--toggle">
+                <label className="toggle-label">
+                  <input
+                    type="checkbox"
+                    checked={weighted}
+                    onChange={() => onWeightedToggle()}
+                    disabled={loading}
+                  />
+                  <span className="toggle-switch" />
+                </label>
+                <span className="toggle-text">Multi-expiry<br />computation</span>
+                <Tooltip text="When enabled, blends all option chains expiring up to the selected date, weighted by proximity (nearer = higher weight). When off, uses only the selected expiry chain." />
+              </div>
+            </>
           )}
 
           <div className="sidebar-vault">

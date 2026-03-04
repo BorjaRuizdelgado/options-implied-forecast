@@ -27,8 +27,10 @@ export default function App() {
     expirations,
     selectedExpiry,
     analysis,
+    weighted,
     handleAnalyse,
     handleExpiryChange,
+    handleWeightedToggle,
   } = useOptionsAnalysis();
 
   return (
@@ -40,6 +42,8 @@ export default function App() {
         onExpiryChange={handleExpiryChange}
         loading={loading}
         daysToExpiry={daysToExpiry}
+        weighted={weighted}
+        onWeightedToggle={handleWeightedToggle}
       />
 
       <main className="main">
@@ -83,6 +87,9 @@ export default function App() {
               Current price: <strong>{fmt(analysis.spot)}</strong> · Expiry:{" "}
               <strong>{analysis.expiry}</strong> ({Math.round(analysis.dte)}{" "}
               days)
+              {analysis.chainsUsed > 1 && (
+                <> · Weighted from <strong>{analysis.chainsUsed}</strong> expiry chains</>
+              )}
             </p>
 
             <KpiRow

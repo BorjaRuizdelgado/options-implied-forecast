@@ -243,8 +243,14 @@ export function maxPain(calls, puts) {
 
 export function ivSmile(calls, puts, spot) {
   const rows = [];
+
+  // Use OTM convention: calls for strikes >= spot, puts for strikes <= spot.
+  // Allow a small overlap band (2%) near ATM so both sides appear around the money.
+  const atmBandLo = spot * 0.98;
+  const atmBandHi = spot * 1.02;
+
   for (const c of calls) {
-    if (c.impliedVolatility > 0) {
+    if (c.impliedVolatility > 0 && c.strike >= atmBandLo) {
       rows.push({
         strike: c.strike,
         iv: c.impliedVolatility,
@@ -254,7 +260,7 @@ export function ivSmile(calls, puts, spot) {
     }
   }
   for (const p of puts) {
-    if (p.impliedVolatility > 0) {
+    if (p.impliedVolatility > 0 && p.strike <= atmBandHi) {
       rows.push({
         strike: p.strike,
         iv: p.impliedVolatility,

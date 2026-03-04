@@ -30,7 +30,21 @@ export default function ForecastChart({
       histPrices = slice.map((b) => b.close);
     }
 
-    const anchor = histDates.length > 0 ? histDates[histDates.length - 1] : new Date().toISOString().slice(0, 10);
+    // Extend history to today at current spot so the line meets the cone
+    const today = new Date().toISOString().slice(0, 10);
+    if (histDates.length > 0) {
+      const lastDate = histDates[histDates.length - 1];
+      if (lastDate === today) {
+        // Update today's close to the live spot price
+        histPrices[histPrices.length - 1] = spot;
+      } else if (lastDate < today) {
+        // Bridge from last close to today at spot
+        histDates.push(today);
+        histPrices.push(spot);
+      }
+    }
+
+    const anchor = histDates.length > 0 ? histDates[histDates.length - 1] : today;
     const anchorDate = new Date(anchor + "T00:00:00");
     const expiryDate = new Date(expiry + "T00:00:00");
 

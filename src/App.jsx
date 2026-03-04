@@ -46,7 +46,13 @@ export default function App() {
         {/* Landing state */}
         {!ticker && !loading && !error && (
           <div className="landing">
-            <h1>Options-Implied Price Forecast</h1>
+            <h1>Borja Ruizdelgado's <br></br> Options Implied Forecast</h1>
+            <br />
+            <p className="landing-desc">
+              Extract the market's expectations from live options data.
+              The tool converts option prices into an implied probability distribution — showing
+              where traders believe a stock, ETF, or crypto is heading.
+            </p>
             <p className="info-box">
               Enter a ticker symbol in the sidebar and click{" "}
               <strong>Analyse</strong> to get started.

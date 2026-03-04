@@ -10,6 +10,7 @@ export default function Sidebar({
   daysToExpiry,
 }) {
   const [ticker, setTicker] = useState("AAPL");
+  const [collapsed, setCollapsed] = useState(false);
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -17,52 +18,59 @@ export default function Sidebar({
   }
 
   return (
-    <aside className="sidebar">
-      <h2>Options Forecast</h2>
-      <p className="caption">
-        Predict where the market thinks a stock is heading, using real options
-        data.
-      </p>
+    <aside className={`sidebar${collapsed ? " sidebar--collapsed" : ""}`}>
+      <button
+        className="sidebar-toggle"
+        onClick={() => setCollapsed((c) => !c)}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {collapsed ? "\u00bb" : "\u00ab"}
+      </button>
+      {!collapsed && <br />}
+      {!collapsed && <h2 className="sidebar-title">Options Analysis</h2>}
 
-      <form onSubmit={handleSubmit}>
-        <label htmlFor="ticker" className="field-label">Ticker symbol</label>
-        <div className="ticker-row">
-          <input
-            id="ticker"
-            type="text"
-            value={ticker}
-            onChange={(e) => setTicker(e.target.value.toUpperCase())}
-            placeholder="e.g. AAPL, TSLA, SPY …"
-          />
-          <button className="btn" type="submit" disabled={loading}>
-            {loading ? "Loading…" : "Analyse"}
-          </button>
-        </div>
-      </form>
+      {!collapsed && (
+        <>
+          <form onSubmit={handleSubmit}>
+            <label htmlFor="ticker" className="field-label">Ticker symbol</label>
+            <input
+              id="ticker"
+              type="text"
+              value={ticker}
+              onChange={(e) => setTicker(e.target.value.toUpperCase())}
+              placeholder="e.g. AAPL, TSLA, SPY …"
+            />
+            <button className="btn" type="submit" disabled={loading}>
+              {loading ? "Loading…" : "Analyse"}
+            </button>
+          </form>
 
-      {expirations && expirations.length > 0 && (
-        <div className="field">
-          <label htmlFor="expiry">Expiration</label>
-          <select
-            id="expiry"
-            value={selectedExpiry?.timestamp ?? ""}
-            onChange={(e) => onExpiryChange(e.target.value)}
-          >
-            {expirations.map((exp) => {
-              const dte = daysToExpiry(exp.date);
-              return (
-                <option key={exp.timestamp} value={exp.timestamp}>
-                  {exp.date} ({Math.round(dte)}d)
-                </option>
-              );
-            })}
-          </select>
-        </div>
+          {expirations && expirations.length > 0 && (
+            <div className="field">
+              <label htmlFor="expiry">Expiration</label>
+              <select
+                id="expiry"
+                value={selectedExpiry?.timestamp ?? ""}
+                onChange={(e) => onExpiryChange(e.target.value)}
+              >
+                {expirations.map((exp) => {
+                  const dte = daysToExpiry(exp.date);
+                  return (
+                    <option key={exp.timestamp} value={exp.timestamp}>
+                      {exp.date} ({Math.round(dte)}d)
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+
+          <div className="sidebar-vault">
+            <SupportVault />
+          </div>
+        </>
       )}
-
-      <div className="sidebar-vault">
-        <SupportVault />
-      </div>
     </aside>
   );
 }

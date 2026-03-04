@@ -1,5 +1,5 @@
 /* =================================================================
-   Options-Implied Price Forecast — styles
+   Options Implied Forecast — styles
    Matches borjaruizdelgado.com design system exactly.
    ================================================================= */
 
@@ -89,8 +89,9 @@ button {
 
 /* ---- Sidebar ---- */
 .sidebar {
-  width: 280px;
-  min-width: 280px;
+  position: relative;
+  width: 300px;
+  min-width: 300px;
   background: var(--bg-alt);
   border-right: 1px solid var(--border);
   padding: 2rem 1.5rem;
@@ -110,6 +111,43 @@ button {
   color: var(--text);
   letter-spacing: -0.01em;
   margin: 0;
+  white-space: nowrap;
+}
+
+/* Collapse toggle — pinned top-right */
+.sidebar-toggle {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: 1rem;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  transition: all 0.25s var(--ease);
+  z-index: 1;
+}
+
+.sidebar-toggle:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Collapsed sidebar */
+.sidebar--collapsed {
+  width: 52px;
+  min-width: 52px;
+  padding: 2rem 0.75rem;
+  align-items: center;
+}
+
+.sidebar--collapsed .sidebar-toggle {
+  position: static;
 }
 
 .sidebar .caption {
@@ -130,14 +168,19 @@ button {
 .sidebar input[type="text"],
 .sidebar select {
   width: 100%;
-  padding: 0.55rem 0.75rem;
+  padding: 0.7rem 0.85rem;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   outline: none;
   transition: border-color var(--transition);
+}
+
+.sidebar select {
+  font-size: 0.85rem;
+  padding: 0.55rem 0.75rem;
 }
 
 .sidebar input[type="text"]:focus,
@@ -158,24 +201,14 @@ button {
   margin-bottom: 0.35rem;
 }
 
-/* Ticker input + Analyse button side by side, equal height */
-.ticker-row {
+.sidebar form {
   display: flex;
+  flex-direction: column;
   gap: 0.5rem;
-  align-items: stretch;
 }
 
-.ticker-row input {
-  flex: 1;
-  min-width: 0;
-}
-
-.ticker-row .btn {
-  width: auto;
-  flex-shrink: 0;
-  padding: 0.55rem 1.1rem;
-  margin: 0;
-  white-space: nowrap;
+.sidebar form .btn {
+  margin-top: 0.25rem;
 }
 
 /* SupportVault sits at the bottom of the sidebar */
@@ -560,8 +593,25 @@ hr {
 .landing h1 {
   font-family: var(--font-serif);
   font-weight: 400;
+  margin-bottom: 0.25rem;
+}
+
+.landing-subtitle {
+  font-family: var(--font-serif);
+  font-weight: 400;
   font-style: italic;
-  margin-bottom: 1rem;
+  font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+  color: var(--text-light);
+  letter-spacing: -0.01em;
+  margin-bottom: 1.5rem;
+}
+
+.landing-desc {
+  max-width: 640px;
+  font-size: 0.95rem;
+  color: var(--text-light);
+  line-height: 1.8;
+  margin-bottom: 1.5rem;
 }
 
 .landing .info-box {
@@ -592,6 +642,16 @@ hr {
   .sidebar h2,
   .sidebar .caption {
     width: 100%;
+  }
+
+  .sidebar-toggle {
+    display: none;
+  }
+
+  .sidebar--collapsed {
+    width: 100%;
+    min-width: unset;
+    padding: 1rem;
   }
 
   .sidebar form {

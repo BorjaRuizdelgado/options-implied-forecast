@@ -201,6 +201,27 @@ export default function ForecastChart({
       annotations.push({ text: `<b>Max Pain</b> $${mp.toFixed(0)}`, x: 1.0, xref: "paper", y: mp, yref: "y", showarrow: false, xanchor: "right", yshift: -14, font: { size: 13, color: COLORS.accentWarm }, ...tagStyle });
     }
 
+    // Compute x-axis visible window & matching y-range from visible data only
+    const viewDays = Math.max(dteDays * 2, 60);
+    const viewStart = histDates.length > viewDays ? histDates[histDates.length - viewDays] : (histDates[0] || anchor);
+    const viewEnd = futureDates.length > 0 ? futureDates[futureDates.length - 1] : anchor;
+
+    // Collect all y-values visible in the default x-range
+    const visibleYs = [];
+    // Visible historical prices
+    for (let i = 0; i < histDates.length; i++) {
+      if (histDates[i] >= viewStart && histDates[i] <= viewEnd) visibleYs.push(histPrices[i]);
+    }
+    // Forecast bands (all within view)
+    visibleYs.push(...b10, ...b90);
+    // Spot, mean, max pain
+    visibleYs.push(spot, dist.mean);
+    if (!isNaN(mp) && Math.abs(mp - spot) / spot < 0.25) visibleYs.push(mp);
+
+    const yMin = Math.min(...visibleYs);
+    const yMax = Math.max(...visibleYs);
+    const yPad = (yMax - yMin) * 0.08 || 5;
+
     const lo = {
       ...LAYOUT_DEFAULTS,
       title: { text: `<b>${ticker}</b>  \u2014  Forecast to ${expiry}`, font: { size: 17, color: COLORS.text }, x: 0.01 },
@@ -208,14 +229,9 @@ export default function ForecastChart({
         ...axisStyle(),
         title: "",
         // Default view: show last ~60 days + projection; user can zoom out for full history & MA200
-        range: (() => {
-          const viewDays = Math.max(dteDays * 2, 60);
-          const viewStart = histDates.length > viewDays ? histDates[histDates.length - viewDays] : (histDates[0] || anchor);
-          const viewEnd = futureDates.length > 0 ? futureDates[futureDates.length - 1] : anchor;
-          return [viewStart, viewEnd];
-        })(),
+        range: [viewStart, viewEnd],
       },
-      yaxis: { ...axisStyle(), title: "Price ($)", tickprefix: "$", autorange: true },
+      yaxis: { ...axisStyle(), title: "Price ($)", tickprefix: "$", range: [yMin - yPad, yMax + yPad] },
       showlegend: true,
       legend: { bgcolor: "rgba(247,245,240,0.90)", bordercolor: COLORS.borderLight, borderwidth: 1, font: { size: 13 }, x: 0.01, y: 0.99, xanchor: "left", yanchor: "top" },
       height: chartHeight(720),

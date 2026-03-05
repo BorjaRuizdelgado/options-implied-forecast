@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import Plot from "react-plotly.js";
 import { COLORS, LAYOUT_DEFAULTS, axisStyle, PLOTLY_CONFIG, chartHeight } from "../lib/theme.js";
+import { buildMaTracesAndAnnotations } from "../lib/ma.js";
 
 /**
  * Main forecast chart: historical price + expanding projection cone.
@@ -15,16 +16,18 @@ export default function ForecastChart({
   mp,
   history,
   dte,
+  overlays = {},
 }) {
   const { data, layout } = useMemo(() => {
     const dteDays = Math.max(Math.ceil(dte), 1);
     const traces = [];
+    const maAnnotations = [];
 
     // ---- Dates setup ----
     let histDates = [];
     let histPrices = [];
+    const maxHist = Math.max(dteDays * 2, 30);
     if (history && history.length > 0) {
-      const maxHist = Math.max(dteDays * 2, 30);
       const slice = history.slice(-maxHist);
       histDates = slice.map((b) => b.date);
       histPrices = slice.map((b) => b.close);
@@ -129,6 +132,18 @@ export default function ForecastChart({
         name: `Current $${spot.toFixed(2)}`,
         hovertemplate: `<b>Current Price</b><br>$${spot.toFixed(2)}<extra></extra>`,
       });
+
+      // Moving averages (only when toggled on)
+      const ma = buildMaTracesAndAnnotations({
+        dates: history.map((b) => b.date),
+        closes: history.map((b) => b.close),
+        overlays,
+        variant: "forecast",
+        sliceLast: maxHist,
+        anchorSide: "right",
+      });
+      traces.push(...ma.traces);
+      maAnnotations.push(...ma.annotations);
     }
 
     // Endpoint dots
@@ -170,6 +185,9 @@ export default function ForecastChart({
       annotations.push({ text: `<b>Max Pain</b> $${mp.toFixed(0)}`, x: 0.0, xref: "paper", y: mp, yref: "y", showarrow: false, xanchor: "left", yshift: 12, font: { size: 12, color: COLORS.accentWarm }, ...tagStyle });
     }
 
+    // MA annotations
+    annotations.push(...maAnnotations);
+
     const lo = {
       ...LAYOUT_DEFAULTS,
       title: { text: `<b>${ticker}</b>  \u2014  Forecast to ${expiry}`, font: { size: 17, color: COLORS.text }, x: 0.01 },
@@ -184,7 +202,7 @@ export default function ForecastChart({
     };
 
     return { data: traces, layout: lo };
-  }, [ticker, expiry, spot, dist, em, pctiles, mp, history, dte]);
+  }, [ticker, expiry, spot, dist, em, pctiles, mp, history, dte, overlays]);
 
   return (
     <div className="chart-section">

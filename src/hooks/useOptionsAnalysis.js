@@ -219,6 +219,36 @@ export default function useOptionsAnalysis() {
     }
   }, [handleAnalyse]);
 
+  // ---- Handle browser back/forward (popstate) ----
+  useEffect(() => {
+    const onPop = () => {
+      const path = window.location.pathname.replace(/^\//, "").replace(/\/$/, "");
+      if (!path) {
+        // Navigated back to root — clear analysed state
+        setTicker(null);
+        setSpot(null);
+        setExpirations(null);
+        setSelectedExpiry(null);
+        setAnalysis(null);
+        setFundamentals(null);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
+      if (!path.includes("/")) {
+        const urlTicker = decodeURIComponent(path).toUpperCase();
+        // Only trigger analyse if ticker changed
+        if (!ticker || ticker.toUpperCase() !== urlTicker) {
+          handleAnalyse(urlTicker);
+        }
+      }
+    };
+
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [handleAnalyse, ticker]);
+
   // ---- Public: change expiry ----
 
   const handleExpiryChange = useCallback(

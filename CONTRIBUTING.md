@@ -1,14 +1,14 @@
 # Contributing
 
-Thanks for your interest in improving the **Investing Tool**! Contributions of all kinds are welcome — bug reports, feature ideas, documentation fixes, code improvements.
+Thanks for your interest in improving **Investing Tools**! Contributions of all kinds are welcome — bug reports, feature ideas, documentation fixes, code improvements.
 
 ## Getting Started
 
 1. **Fork** the repository and clone your fork:
 
    ```bash
-   git clone https://github.com/<your-user>/options-implied-forecast.git
-   cd options-implied-forecast
+   git clone https://github.com/<your-user>/investing.git
+   cd investing
    ```
 
 2. Install dependencies:
@@ -59,7 +59,7 @@ Thanks for your interest in improving the **Investing Tool**! Contributions of a
 
 ## Reporting Bugs
 
-Open a [GitHub Issue](https://github.com/borjaruizdelgado/options-implied-forecast/issues) with:
+Open a [GitHub Issue](https://github.com/borjaruizdelgado/investing/issues) with:
 
 - Steps to reproduce the problem.
 - The ticker and expiration date you were analysing (if applicable).

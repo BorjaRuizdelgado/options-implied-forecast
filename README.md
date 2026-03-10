@@ -1,4 +1,4 @@
-# Investing Tool
+# Investing Tools
 
 > Unified investing analysis — options-implied forecasts, stock fundamentals, analyst estimates, balance sheet data, and crypto options in one free tool.
 

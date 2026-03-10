@@ -69,7 +69,7 @@ export default function App() {
         {/* Landing state */}
         {!ticker && !loading && !error && (
           <div className="landing">
-            <h1>Borja Ruizdelgado - Investing</h1>
+            <h1>Borja Ruizdelgado - Investing Tools</h1>
             <p className="landing-desc">
               Options-implied forecasts, stock fundamentals, analyst estimates,
               and crypto analysis — unified in one free tool. Pick a trending

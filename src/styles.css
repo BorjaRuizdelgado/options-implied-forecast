@@ -945,50 +945,6 @@ hr {
   margin-bottom: 1rem;
 }
 
-.fund-section {
-  margin-bottom: 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.fund-section > .kpi-row {
-  padding: 0.75rem 1rem 1rem;
-}
-
-.fund-section-title {
-  display: flex;
-  align-items: center;
-  font-family: var(--font-sans);
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  padding: 0.6rem 1rem;
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-  transition: color 0.2s var(--ease);
-}
-
-.fund-section-title:hover {
-  color: var(--accent);
-}
-
-.fund-section-title::-webkit-details-marker { display: none; }
-.fund-section-title::marker { display: none; content: ""; }
-
-.fund-section-title::before {
-  content: "▸";
-  margin-right: 0.5rem;
-  font-size: 0.7rem;
-  transition: transform 0.2s var(--ease);
-}
-
-.fund-section[open] > .fund-section-title::before {
-  transform: rotate(90deg);
-}
 
 .fundamentals .kpi-row {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));

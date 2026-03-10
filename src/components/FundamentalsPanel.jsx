@@ -184,9 +184,11 @@ function Section({ title, children }) {
   const valid = React.Children.toArray(children).filter(Boolean);
   if (valid.length === 0) return null;
   return (
-    <details className="fund-section">
-      <summary className="fund-section-title">{title}</summary>
-      <div className="kpi-row">{valid}</div>
+    <details className="expander">
+      <summary>{title}</summary>
+      <div className="expander-body">
+        <div className="kpi-row">{valid}</div>
+      </div>
     </details>
   );
 }

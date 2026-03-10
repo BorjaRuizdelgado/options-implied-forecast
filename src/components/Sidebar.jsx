@@ -37,7 +37,7 @@ export default function Sidebar({
       </button>
       <a href="/" className="sidebar-logo" onClick={(e) => { e.preventDefault(); window.location.href = "/"; }}>
         <span className="sidebar-logo-mark">R</span>
-        {!collapsed && <span className="sidebar-logo-text">Investing</span>}
+        {!collapsed && <span className="sidebar-logo-text">Investing Tools</span>}
       </a>
 
       {!collapsed && (

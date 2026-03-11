@@ -1,42 +1,39 @@
-import React, { useState, useCallback } from "react";
-import Sidebar from "./components/Sidebar.jsx";
-import KpiRow from "./components/KpiRow.jsx";
-import LabelStrip from "./components/LabelStrip.jsx";
-import ForecastChart from "./components/ForecastChart.jsx";
-import DistributionChart from "./components/DistributionChart.jsx";
-import IvSmileChart from "./components/IvSmileChart.jsx";
-import OiChart from "./components/OiChart.jsx";
-import SrChart from "./components/SrChart.jsx";
-import ChartOverlays from "./components/ChartOverlays.jsx";
-import {
-  PercentileExpander,
-  DistributionExpander,
-  EntryExpander,
-  PcrExpander,
-} from "./components/Expanders.jsx";
+import React, { useMemo, useState } from "react";
+import Header from "./components/Header.jsx";
+import TerminalTabs from "./components/TerminalTabs.jsx";
+import OverviewPage from "./components/OverviewPage.jsx";
+import ValuePage from "./components/ValuePage.jsx";
+import QualityPage from "./components/QualityPage.jsx";
+import RiskPage from "./components/RiskPage.jsx";
+import BusinessPage from "./components/BusinessPage.jsx";
+import OptionsPage from "./components/OptionsPage.jsx";
 import FundamentalsPanel from "./components/FundamentalsPanel.jsx";
+import DisclaimerPage from "./components/DisclaimerPage.jsx";
+import DonationsPage from "./components/DonationsPage.jsx";
 import TrendingTickers from "./components/TrendingTickers.jsx";
 import SupportVault from "./components/SupportVault.jsx";
 import { daysToExpiry } from "./lib/fetcher.js";
-import { fmt } from "./lib/format.js";
-import { forecastLabels, distributionLabels, entryLabels } from "./lib/labels.js";
-import useOptionsAnalysis from "./hooks/useOptionsAnalysis.js";
+import useResearchTerminal from "./hooks/useResearchTerminal.js";
+import { DISCLAIMER_PATH, DONATE_PATH, currentPath } from "./lib/routes.js";
 
-const DEFAULT_FORECAST_OVERLAYS = { ma20: false, ma50: false, ma200: false };
-const DEFAULT_ENTRY_OVERLAYS = { ma20: false, ma50: false, ma200: false, gw: true, pivots: true };
+const TABS = [
+  { id: "overview", label: "Overview", caption: "Decision snapshot" },
+  { id: "value", label: "Value", caption: "Cheap or expensive" },
+  { id: "quality", label: "Quality", caption: "Business strength" },
+  { id: "risk", label: "Risk", caption: "Fragility and downside" },
+  { id: "business", label: "Business", caption: "Financial trends" },
+  { id: "options", label: "Options", caption: "Market pricing" },
+  { id: "fundamentals", label: "Fundamentals", caption: "Raw reference" },
+];
 
 export default function App() {
-  const [forecastOverlays, setForecastOverlays] = useState(DEFAULT_FORECAST_OVERLAYS);
-  const [entryOverlays, setEntryOverlays] = useState(DEFAULT_ENTRY_OVERLAYS);
-
-  const toggleForecast = useCallback((key) => {
-    setForecastOverlays((prev) => ({ ...prev, [key]: !prev[key] }));
-  }, []);
-
-  const toggleEntry = useCallback((key) => {
-    setEntryOverlays((prev) => ({ ...prev, [key]: !prev[key] }));
-  }, []);
-
+  const [activeTab, setActiveTab] = useState("overview");
+  const [page, setPage] = useState(() => {
+    const p = currentPath();
+    if (p === DISCLAIMER_PATH) return "disclaimer";
+    if (p === DONATE_PATH) return "donate";
+    return "terminal";
+  });
   const {
     loading,
     error,
@@ -45,146 +42,176 @@ export default function App() {
     selectedExpiry,
     analysis,
     fundamentals,
+    research,
     weighted,
     handleAnalyse,
     handleExpiryChange,
     handleWeightedToggle,
-  } = useOptionsAnalysis();
+  } = useResearchTerminal();
+
+  const visibleTabs = useMemo(
+    () => TABS.filter((tab) => research?.availability?.[tab.id] ?? tab.id === "overview"),
+    [research],
+  );
+  React.useEffect(() => {
+    if (!visibleTabs.some((tab) => tab.id === activeTab) && visibleTabs[0]) {
+      setActiveTab(visibleTabs[0].id);
+    }
+  }, [activeTab, visibleTabs]);
+
+  React.useEffect(() => {
+    const onPop = () => {
+      const p = currentPath();
+      if (p === DISCLAIMER_PATH) setPage("disclaimer");
+      else if (p === DONATE_PATH) setPage("donate");
+      else setPage("terminal");
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  const navigateDisclaimer = React.useCallback(() => {
+    if (window.location.pathname !== DISCLAIMER_PATH) {
+      window.history.pushState(null, "", DISCLAIMER_PATH);
+    }
+    setPage("disclaimer");
+  }, []);
+
+  const navigateDonate = React.useCallback(() => {
+    if (window.location.pathname !== DONATE_PATH) {
+      window.history.pushState(null, "", DONATE_PATH);
+    }
+    setPage("donate");
+  }, []);
+
+  const navigateHome = React.useCallback(() => {
+    if (window.location.pathname !== "/") {
+      window.history.pushState(null, "", "/");
+    }
+    setPage("terminal");
+  }, []);
 
   return (
     <div className="app">
-      <Sidebar
-        onAnalyse={handleAnalyse}
-        expirations={expirations}
-        selectedExpiry={selectedExpiry}
-        onExpiryChange={handleExpiryChange}
+      <Header
+        onAnalyse={(nextTicker) => {
+          setActiveTab("overview");
+          setPage("terminal");
+          handleAnalyse(nextTicker);
+        }}
         loading={loading}
-        daysToExpiry={daysToExpiry}
-        weighted={weighted}
-        onWeightedToggle={handleWeightedToggle}
         activeTicker={ticker}
+        onNavigateDisclaimer={navigateDisclaimer}
+        onNavigateDonate={navigateDonate}
       />
 
       <main className="main">
-        {/* Landing state */}
-        {!ticker && !loading && !error && (
+        {page === "disclaimer" && (
+          <div className="main-content">
+            <DisclaimerPage />
+            <div className="page-link-row">
+              <a href="/" className="page-link" onClick={(e) => { e.preventDefault(); navigateHome(); }}>Back to terminal</a>
+            </div>
+          </div>
+        )}
+
+        {page === "donate" && (
+          <div className="main-content">
+            <DonationsPage />
+            <div className="page-link-row">
+              <a href="/" className="page-link" onClick={(e) => { e.preventDefault(); navigateHome(); }}>Back to terminal</a>
+            </div>
+          </div>
+        )}
+
+        {page === "terminal" && !ticker && !loading && !error && (
           <div className="landing">
-            <h1>Borja Ruizdelgado - Investing Tools</h1>
+            <h1>Borja Ruizdelgado's - Investing Tools</h1>
             <p className="landing-desc">
-              Options-implied forecasts, stock fundamentals, analyst estimates,
-              and crypto analysis — unified in one free tool. Pick a trending
-              ticker below or search any symbol to get started.
+              A browser-based investing workspace for valuation, business quality,
+              downside risk, and options-implied market pricing. Search a ticker
+              or start from the live trending list.
             </p>
-            <TrendingTickers onTickerClick={handleAnalyse} />
+            <TrendingTickers onTickerClick={(nextTicker) => {
+              setActiveTab("overview");
+              handleAnalyse(nextTicker);
+            }} />
           </div>
         )}
 
-        {/* Loading */}
-        {loading && !analysis && (
-          <div className="loading">
-            <div className="spinner" />
-            <span>
-              {ticker
-                ? `Running analysis for ${ticker}…`
-                : "Fetching data…"}
-            </span>
+        {page === "terminal" && loading && !analysis && (
+          <div className="main-content">
+            <div className="loading">
+              <div className="spinner" />
+              <span>{ticker ? `Running analysis for ${ticker}…` : "Fetching data…"}</span>
+            </div>
           </div>
         )}
 
-        {/* Error */}
-        {error && <div className="error-box">{error}</div>}
+        {page === "terminal" && error && (
+          <div className="main-content">
+            <div className="error-box">{error}</div>
+          </div>
+        )}
 
-        {/* Analysis results */}
-        {analysis && (
+        {page === "terminal" && analysis && research && (
           <>
-            <h1>{ticker}</h1>
-            <p className="subtitle">
-              Current price: <strong>{fmt(analysis.spot)}</strong> · Expiry:{" "}
-              <strong>{analysis.expiry}</strong> ({Math.round(analysis.dte)}{" "}
-              days)
-              {analysis.chainsUsed > 1 && (
-                <> · Weighted from <strong>{analysis.chainsUsed}</strong> expiry chains</>
-              )}
-            </p>
-
-            <KpiRow
-              dist={analysis.dist}
-              spot={analysis.spot}
-              em={analysis.em}
-              probs={analysis.probs}
-              mp={analysis.mp}
-            />
-
-            <ChartOverlays
-              overlays={[
-                { key: "ma20", label: "MA 20", active: forecastOverlays.ma20 },
-                { key: "ma50", label: "MA 50", active: forecastOverlays.ma50 },
-                { key: "ma200", label: "MA 200", active: forecastOverlays.ma200 },
-              ]}
-              onToggle={toggleForecast}
-            />
-            <ForecastChart
-              ticker={ticker}
-              expiry={analysis.expiry}
-              spot={analysis.spot}
-              dist={analysis.dist}
-              em={analysis.em}
-              pctiles={analysis.pctiles}
-              mp={analysis.mp}
-              history={analysis.history}
-              dte={analysis.dte}
-              sr={analysis.sr}
-              overlays={forecastOverlays}
-            />
-            <LabelStrip items={forecastLabels(analysis)} />
-
-            <DistributionChart
-              dist={analysis.dist}
-              spot={analysis.spot}
-              pctiles={analysis.pctiles}
-              mp={analysis.mp}
-            />
-            <LabelStrip items={distributionLabels(analysis)} />
-
-            <ChartOverlays
-              overlays={[
-                { key: "ma20", label: "MA 20", active: entryOverlays.ma20 },
-                { key: "ma50", label: "MA 50", active: entryOverlays.ma50 },
-                { key: "ma200", label: "MA 200", active: entryOverlays.ma200 },
-                { key: "gw", label: "Gamma Walls", active: entryOverlays.gw },
-                { key: "pivots", label: "Pivots", active: entryOverlays.pivots },
-              ]}
-              onToggle={toggleEntry}
-            />
-            <SrChart
-              ticker={ticker}
-              history={analysis.history}
-              spot={analysis.spot}
-              sr={analysis.sr}
-              entryInfo={analysis.entry}
-              overlays={entryOverlays}
-            />
-            <LabelStrip items={entryLabels(analysis)} />
-
-            <div className="chart-row">
-              <IvSmileChart ivData={analysis.ivData} spot={analysis.spot} />
-              <OiChart calls={analysis.calls} puts={analysis.puts} spot={analysis.spot} />
+            <div className="terminal-tabs-bar">
+              <TerminalTabs tabs={visibleTabs} activeTab={activeTab} onChange={setActiveTab} />
             </div>
 
-            <PercentileExpander pctiles={analysis.pctiles} spot={analysis.spot} />
-            <DistributionExpander dist={analysis.dist} />
-            <EntryExpander entryInfo={analysis.entry} sr={analysis.sr} />
-            <PcrExpander pcr={analysis.pcr} />
+            <div className="tab-content">
+              {activeTab === "overview" && (
+                <OverviewPage
+                  ticker={ticker}
+                  spot={analysis.spot}
+                  fundamentals={fundamentals}
+                  research={research}
+                  analysis={analysis}
+                />
+              )}
+              {activeTab === "value" && <ValuePage research={research} />}
+              {activeTab === "quality" && <QualityPage research={research} />}
+              {activeTab === "risk" && <RiskPage research={research} />}
+              {activeTab === "business" && (
+                <BusinessPage ticker={ticker} fundamentals={fundamentals} research={research} />
+              )}
+              {activeTab === "options" && (
+                <OptionsPage
+                  ticker={ticker}
+                  analysis={analysis}
+                  expirations={expirations}
+                  selectedExpiry={selectedExpiry}
+                  onExpiryChange={handleExpiryChange}
+                  daysToExpiry={daysToExpiry}
+                  weighted={weighted}
+                  onWeightedToggle={handleWeightedToggle}
+                  loading={loading}
+                />
+              )}
+              {activeTab === "fundamentals" && (
+                fundamentals ? (
+                  <FundamentalsPanel fundamentals={fundamentals} />
+                ) : (
+                  <div className="info-box">Fundamental reference data is not available for this ticker.</div>
+                )
+              )}
 
-            {fundamentals && <FundamentalsPanel fundamentals={fundamentals} />}
-
-            <hr />
-            <p className="footnote">
-              This tool shows what is already priced into traded options — it
-              does not predict the future.
-            </p>
-
-            <SupportVault />
+              <hr />
+              <div className="page-link-row">
+                <a
+                  href={DISCLAIMER_PATH}
+                  className="page-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigateDisclaimer();
+                  }}
+                >
+                  Disclaimer
+                </a>
+              </div>
+              <SupportVault />
+            </div>
           </>
         )}
       </main>

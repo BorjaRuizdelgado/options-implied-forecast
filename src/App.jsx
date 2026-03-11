@@ -22,7 +22,7 @@ const TABS = [
   { id: "quality", label: "Quality", caption: "Business strength" },
   { id: "risk", label: "Risk", caption: "Fragility and downside" },
   { id: "business", label: "Business", caption: "Financial trends" },
-  { id: "options", label: "Options", caption: "Market pricing" },
+  { id: "options", label: "Options Forecasting", caption: "Market pricing" },
   { id: "fundamentals", label: "Fundamentals", caption: "Raw reference" },
 ];
 

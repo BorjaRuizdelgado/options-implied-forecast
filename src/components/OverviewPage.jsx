@@ -87,11 +87,6 @@ export default function OverviewPage({ ticker, spot, fundamentals, research, ana
             value={fmtCompact(fundamentals?.marketCap)}
             caption={fundamentals?.exchange || "Market"}
           />
-          <VerdictCard
-            label="Opportunity"
-            value={research?.opportunity?.hasData ? research.opportunity.label : "Options-led"}
-            caption={research?.signals?.[0]?.title || "Built only from sections with enough data"}
-          />
         </div>
       </section>
 

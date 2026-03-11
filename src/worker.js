@@ -189,9 +189,21 @@ async function handleOptions(ticker) {
   const incomeHist = summaryResult.incomeStatementHistory?.incomeStatementHistory?.[0] || {};
   const balanceHist = summaryResult.balanceSheetHistory?.balanceSheetStatements?.[0] || {};
   const cashflowHist = summaryResult.cashflowStatementHistory?.cashflowStatements?.[0] || {};
+  const incomeHistory = summaryResult.incomeStatementHistory?.incomeStatementHistory || [];
+  const balanceHistory = summaryResult.balanceSheetHistory?.balanceSheetStatements || [];
+  const cashflowHistory = summaryResult.cashflowStatementHistory?.cashflowStatements || [];
 
   // Helper: extract raw value from Yahoo's {raw, fmt} objects
   const rv = (obj) => obj?.raw ?? obj ?? null;
+  const derivedPegRatio =
+    rv(keyStats.pegRatio) ??
+    rv(finData.pegRatio) ??
+    (
+      (quote.forwardPE ?? rv(keyStats.forwardPE) ?? null) > 0 &&
+      rv(finData.earningsGrowth) > 0
+        ? (quote.forwardPE ?? rv(keyStats.forwardPE)) / (rv(finData.earningsGrowth) * 100)
+        : null
+    );
 
   const fundamentals = {
     // Identity
@@ -207,7 +219,7 @@ async function handleOptions(ticker) {
     enterpriseValue: rv(keyStats.enterpriseValue) ?? quote.enterpriseValue ?? null,
     trailingPE: quote.trailingPE ?? null,
     forwardPE: quote.forwardPE ?? rv(keyStats.forwardPE) ?? null,
-    pegRatio: rv(keyStats.pegRatio) ?? null,
+    pegRatio: derivedPegRatio,
     priceToBook: quote.priceToBook ?? rv(keyStats.priceToBook) ?? null,
     priceToSales: quote.priceToSalesTrailing12Months ?? null,
     enterpriseToRevenue: rv(keyStats.enterpriseToRevenue) ?? quote.enterpriseToRevenue ?? null,
@@ -293,6 +305,39 @@ async function handleOptions(ticker) {
     mostRecentQuarter: rv(keyStats.mostRecentQuarter) ?? null,
     lastFiscalYearEnd: rv(keyStats.lastFiscalYearEnd) ?? null,
     nextFiscalYearEnd: rv(keyStats.nextFiscalYearEnd) ?? null,
+    statements: {
+      income: incomeHistory
+        .map((row) => ({
+          endDate: row?.endDate?.fmt || null,
+          totalRevenue: rv(row?.totalRevenue),
+          grossProfit: rv(row?.grossProfit),
+          operatingIncome: rv(row?.operatingIncome),
+          netIncome: rv(row?.netIncome),
+        }))
+        .filter((row) => row.endDate),
+      balance: balanceHistory
+        .map((row) => ({
+          endDate: row?.endDate?.fmt || null,
+          totalAssets: rv(row?.totalAssets),
+          totalLiabilities: rv(row?.totalLiab),
+          totalStockholderEquity: rv(row?.totalStockholderEquity),
+          cash: rv(row?.cash),
+          shortLongTermDebt: rv(row?.shortLongTermDebt),
+          longTermDebt: rv(row?.longTermDebt),
+        }))
+        .filter((row) => row.endDate),
+      cashflow: cashflowHistory
+        .map((row) => ({
+          endDate: row?.endDate?.fmt || null,
+          operatingCashflow: rv(row?.totalCashFromOperatingActivities),
+          capitalExpenditures: rv(row?.capitalExpenditures),
+          freeCashflow:
+            rv(row?.totalCashFromOperatingActivities) != null && rv(row?.capitalExpenditures) != null
+              ? rv(row?.totalCashFromOperatingActivities) + rv(row?.capitalExpenditures)
+              : null,
+        }))
+        .filter((row) => row.endDate),
+    },
   };
 
   return jsonResp({

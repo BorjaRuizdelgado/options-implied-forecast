@@ -485,7 +485,7 @@ button {
 
 .kpi-label {
   font-size: 0.78rem;
-  color: var(--text-muted);
+  color: var(--text-light);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-bottom: 0.2rem;
@@ -1154,7 +1154,7 @@ hr {
   align-items: center;
   gap: 0.4rem;
   font-size: 0.72rem;
-  color: var(--text-muted);
+  color: var(--text-light);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 0.35rem;
@@ -1253,7 +1253,7 @@ hr {
   align-items: center;
   gap: 0.4rem;
   font-size: 0.8rem;
-  color: var(--text-muted);
+  color: var(--text-light);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }

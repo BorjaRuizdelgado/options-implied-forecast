@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import Sidebar from "./components/Sidebar.jsx";
+import Header from "./components/Header.jsx";
 import TerminalTabs from "./components/TerminalTabs.jsx";
 import OverviewPage from "./components/OverviewPage.jsx";
 import ValuePage from "./components/ValuePage.jsx";
@@ -9,11 +9,12 @@ import BusinessPage from "./components/BusinessPage.jsx";
 import OptionsPage from "./components/OptionsPage.jsx";
 import FundamentalsPanel from "./components/FundamentalsPanel.jsx";
 import DisclaimerPage from "./components/DisclaimerPage.jsx";
+import DonationsPage from "./components/DonationsPage.jsx";
 import TrendingTickers from "./components/TrendingTickers.jsx";
 import SupportVault from "./components/SupportVault.jsx";
 import { daysToExpiry } from "./lib/fetcher.js";
 import useResearchTerminal from "./hooks/useResearchTerminal.js";
-import { DISCLAIMER_PATH, currentPath } from "./lib/routes.js";
+import { DISCLAIMER_PATH, DONATE_PATH, currentPath } from "./lib/routes.js";
 
 const TABS = [
   { id: "overview", label: "Overview", caption: "Decision snapshot" },
@@ -27,7 +28,12 @@ const TABS = [
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("overview");
-  const [page, setPage] = useState(() => (currentPath() === DISCLAIMER_PATH ? "disclaimer" : "terminal"));
+  const [page, setPage] = useState(() => {
+    const p = currentPath();
+    if (p === DISCLAIMER_PATH) return "disclaimer";
+    if (p === DONATE_PATH) return "donate";
+    return "terminal";
+  });
   const {
     loading,
     error,
@@ -55,7 +61,10 @@ export default function App() {
 
   React.useEffect(() => {
     const onPop = () => {
-      setPage(currentPath() === DISCLAIMER_PATH ? "disclaimer" : "terminal");
+      const p = currentPath();
+      if (p === DISCLAIMER_PATH) setPage("disclaimer");
+      else if (p === DONATE_PATH) setPage("donate");
+      else setPage("terminal");
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
@@ -68,6 +77,13 @@ export default function App() {
     setPage("disclaimer");
   }, []);
 
+  const navigateDonate = React.useCallback(() => {
+    if (window.location.pathname !== DONATE_PATH) {
+      window.history.pushState(null, "", DONATE_PATH);
+    }
+    setPage("donate");
+  }, []);
+
   const navigateHome = React.useCallback(() => {
     if (window.location.pathname !== "/") {
       window.history.pushState(null, "", "/");
@@ -77,7 +93,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar
+      <Header
         onAnalyse={(nextTicker) => {
           setActiveTab("overview");
           setPage("terminal");
@@ -86,25 +102,26 @@ export default function App() {
         loading={loading}
         activeTicker={ticker}
         onNavigateDisclaimer={navigateDisclaimer}
+        onNavigateDonate={navigateDonate}
       />
 
       <main className="main">
         {page === "disclaimer" && (
-          <>
+          <div className="main-content">
             <DisclaimerPage />
             <div className="page-link-row">
-              <a
-                href="/"
-                className="page-link"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigateHome();
-                }}
-              >
-                Back to terminal
-              </a>
+              <a href="/" className="page-link" onClick={(e) => { e.preventDefault(); navigateHome(); }}>Back to terminal</a>
             </div>
-          </>
+          </div>
+        )}
+
+        {page === "donate" && (
+          <div className="main-content">
+            <DonationsPage />
+            <div className="page-link-row">
+              <a href="/" className="page-link" onClick={(e) => { e.preventDefault(); navigateHome(); }}>Back to terminal</a>
+            </div>
+          </div>
         )}
 
         {page === "terminal" && !ticker && !loading && !error && (
@@ -123,70 +140,78 @@ export default function App() {
         )}
 
         {page === "terminal" && loading && !analysis && (
-          <div className="loading">
-            <div className="spinner" />
-            <span>{ticker ? `Running analysis for ${ticker}…` : "Fetching data…"}</span>
+          <div className="main-content">
+            <div className="loading">
+              <div className="spinner" />
+              <span>{ticker ? `Running analysis for ${ticker}…` : "Fetching data…"}</span>
+            </div>
           </div>
         )}
 
-        {page === "terminal" && error && <div className="error-box">{error}</div>}
+        {page === "terminal" && error && (
+          <div className="main-content">
+            <div className="error-box">{error}</div>
+          </div>
+        )}
 
         {page === "terminal" && analysis && research && (
           <>
-            <section className="terminal-frame">
+            <div className="terminal-tabs-bar">
               <TerminalTabs tabs={visibleTabs} activeTab={activeTab} onChange={setActiveTab} />
-            </section>
-
-            {activeTab === "overview" && (
-              <OverviewPage
-                ticker={ticker}
-                spot={analysis.spot}
-                fundamentals={fundamentals}
-                research={research}
-                analysis={analysis}
-              />
-            )}
-            {activeTab === "value" && <ValuePage research={research} />}
-            {activeTab === "quality" && <QualityPage research={research} />}
-            {activeTab === "risk" && <RiskPage research={research} />}
-            {activeTab === "business" && (
-              <BusinessPage ticker={ticker} fundamentals={fundamentals} research={research} />
-            )}
-            {activeTab === "options" && (
-              <OptionsPage
-                ticker={ticker}
-                analysis={analysis}
-                expirations={expirations}
-                selectedExpiry={selectedExpiry}
-                onExpiryChange={handleExpiryChange}
-                daysToExpiry={daysToExpiry}
-                weighted={weighted}
-                onWeightedToggle={handleWeightedToggle}
-                loading={loading}
-              />
-            )}
-            {activeTab === "fundamentals" && (
-              fundamentals ? (
-                <FundamentalsPanel fundamentals={fundamentals} />
-              ) : (
-                <div className="info-box">Fundamental reference data is not available for this ticker.</div>
-              )
-            )}
-
-            <hr />
-            <div className="page-link-row">
-              <a
-                href={DISCLAIMER_PATH}
-                className="page-link"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigateDisclaimer();
-                }}
-              >
-                Disclaimer
-              </a>
             </div>
-            <SupportVault />
+
+            <div className="tab-content">
+              {activeTab === "overview" && (
+                <OverviewPage
+                  ticker={ticker}
+                  spot={analysis.spot}
+                  fundamentals={fundamentals}
+                  research={research}
+                  analysis={analysis}
+                />
+              )}
+              {activeTab === "value" && <ValuePage research={research} />}
+              {activeTab === "quality" && <QualityPage research={research} />}
+              {activeTab === "risk" && <RiskPage research={research} />}
+              {activeTab === "business" && (
+                <BusinessPage ticker={ticker} fundamentals={fundamentals} research={research} />
+              )}
+              {activeTab === "options" && (
+                <OptionsPage
+                  ticker={ticker}
+                  analysis={analysis}
+                  expirations={expirations}
+                  selectedExpiry={selectedExpiry}
+                  onExpiryChange={handleExpiryChange}
+                  daysToExpiry={daysToExpiry}
+                  weighted={weighted}
+                  onWeightedToggle={handleWeightedToggle}
+                  loading={loading}
+                />
+              )}
+              {activeTab === "fundamentals" && (
+                fundamentals ? (
+                  <FundamentalsPanel fundamentals={fundamentals} />
+                ) : (
+                  <div className="info-box">Fundamental reference data is not available for this ticker.</div>
+                )
+              )}
+
+              <hr />
+              <div className="page-link-row">
+                <a
+                  href={DISCLAIMER_PATH}
+                  className="page-link"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigateDisclaimer();
+                  }}
+                >
+                  Disclaimer
+                </a>
+              </div>
+              <SupportVault />
+            </div>
           </>
         )}
       </main>

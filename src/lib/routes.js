@@ -1,11 +1,12 @@
 export const DISCLAIMER_PATH = "/disclaimer";
+export const DONATE_PATH = "/donate";
 
 export function currentPath() {
   return window.location.pathname.replace(/\/$/, "") || "/";
 }
 
 export function isReservedPath(pathname) {
-  return pathname === DISCLAIMER_PATH;
+  return pathname === DISCLAIMER_PATH || pathname === DONATE_PATH;
 }
 
 export function tickerFromPath(pathname) {

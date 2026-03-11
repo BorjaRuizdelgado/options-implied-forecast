@@ -619,6 +619,99 @@ async function handleTrending() {
 }
 
 // ======================================================================
+// SEO: Crawler detection & dynamic meta tags
+// ======================================================================
+
+const CRAWLER_RE = /googlebot|bingbot|yandexbot|duckduckbot|slurp|baiduspider|facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegram|discord|applebot|ia_archiver|semrushbot|ahrefsbot|mj12bot/i;
+
+function isCrawler(request) {
+  const ua = request.headers.get("user-agent") || "";
+  return CRAWLER_RE.test(ua);
+}
+
+/**
+ * Build an HTML page with dynamic meta tags for a specific ticker,
+ * so crawlers index meaningful content for each route.
+ */
+function buildCrawlerHtml(url, ticker) {
+  const origin = url.origin;
+  const title = ticker
+    ? `${ticker} Options & Stock Analysis — Borja Ruizdelgado Investing Tools`
+    : "Borja Ruizdelgado — Free Options & Stock Analysis Tools";
+  const description = ticker
+    ? `Free ${ticker} analysis by Borja Ruizdelgado: options-implied price forecast, probability distribution, expected move, IV smile, fundamentals (P/E, EBITDA, margins), analyst targets, and support/resistance levels.`
+    : "Free investing tools by Borja Ruizdelgado: options-implied price forecasts, probability distributions, IV smile, stock fundamentals, and crypto options analysis.";
+  const canonical = ticker ? `${origin}/${ticker}` : `${origin}/`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>${title}</title>
+  <meta name="description" content="${description}"/>
+  <meta name="author" content="Borja Ruizdelgado"/>
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large"/>
+  <link rel="canonical" href="${canonical}"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:url" content="${canonical}"/>
+  <meta property="og:title" content="${title}"/>
+  <meta property="og:description" content="${description}"/>
+  <meta property="og:image" content="${origin}/og-image.png"/>
+  <meta property="og:site_name" content="Borja Ruizdelgado — Investing Tools"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="${title}"/>
+  <meta name="twitter:description" content="${description}"/>
+  <meta name="twitter:image" content="${origin}/og-image.png"/>
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"WebApplication",
+    "name":"Borja Ruizdelgado — Investing Tools",
+    "url":"${origin}/",
+    "description":"${description}",
+    "applicationCategory":"FinanceApplication",
+    "operatingSystem":"Web",
+    "author":{"@type":"Person","name":"Borja Ruizdelgado","url":"https://borjaruizdelgado.com"}
+  }
+  </script>
+</head>
+<body>
+  <h1>${title}</h1>
+  <p>${description}</p>
+  ${ticker ? `<p>Analyse <strong>${ticker}</strong> with free tools by Borja Ruizdelgado: options forecasting, fundamental analysis, value scoring, quality metrics, risk assessment, and more.</p>
+  <h2>${ticker} Analysis Tools</h2>
+  <ul>
+    <li><a href="${origin}/${ticker}/overview">${ticker} Overview — Decision snapshot</a></li>
+    <li><a href="${origin}/${ticker}/value">${ticker} Valuation — Cheap or expensive</a></li>
+    <li><a href="${origin}/${ticker}/quality">${ticker} Quality — Business strength</a></li>
+    <li><a href="${origin}/${ticker}/risk">${ticker} Risk — Fragility and downside</a></li>
+    <li><a href="${origin}/${ticker}/business">${ticker} Business — Financial trends</a></li>
+    <li><a href="${origin}/${ticker}/options">${ticker} Options Forecasting — Market pricing</a></li>
+    <li><a href="${origin}/${ticker}/fundamentals">${ticker} Fundamentals — Raw reference data</a></li>
+  </ul>` : `<h2>Features</h2>
+  <ul>
+    <li>Options Forecasting — Implied probability distributions, expected move ranges, IV smile</li>
+    <li>Stock Fundamentals — P/E, EBITDA, EPS, margins, ROE, analyst price targets</li>
+    <li>Support & Resistance — Automatic levels with entry/stop/target suggestions</li>
+    <li>Value Analysis — Multiple valuation models</li>
+    <li>Quality Scoring — Profitability, growth, financial health</li>
+    <li>Risk Analysis — Beta, short interest, volatility</li>
+    <li>Crypto Options — BTC, ETH, SOL, XRP, DOGE</li>
+  </ul>
+  <h2>Popular Tickers</h2>
+  <p>
+    <a href="${origin}/AAPL">AAPL</a> · <a href="${origin}/TSLA">TSLA</a> ·
+    <a href="${origin}/SPY">SPY</a> · <a href="${origin}/MSFT">MSFT</a> ·
+    <a href="${origin}/NVDA">NVDA</a> · <a href="${origin}/AMZN">AMZN</a> ·
+    <a href="${origin}/BTC">BTC</a> · <a href="${origin}/ETH">ETH</a>
+  </p>`}
+  <p>Created by <a href="https://borjaruizdelgado.com">Borja Ruizdelgado</a></p>
+</body>
+</html>`;
+}
+
+// ======================================================================
 // Main handler
 // ======================================================================
 
@@ -710,8 +803,34 @@ export default {
 
       // SPA fallback: serve index.html for any non-API, non-asset path
       // (e.g. /BTC, /SPY) so client-side routing can handle it.
+      //
+      // For crawlers (Googlebot, etc.), serve dynamic HTML with proper meta
+      // tags and content so each ticker page is individually indexable.
       const assetRes = await env.ASSETS.fetch(request);
       if (assetRes.status === 404 && !url.pathname.startsWith("/api/")) {
+        // Extract potential ticker from path
+        const pathClean = url.pathname.replace(/^\//, "").replace(/\/$/, "");
+        const parts = pathClean.split("/");
+        const maybeTicker = parts[0] ? decodeURIComponent(parts[0]).toUpperCase() : null;
+        const reserved = new Set(["DISCLAIMER", "DONATE"]);
+
+        if (isCrawler(request) && maybeTicker && !reserved.has(maybeTicker)) {
+          // Serve crawler-friendly HTML with dynamic meta tags
+          const html = buildCrawlerHtml(url, maybeTicker);
+          return new Response(html, {
+            status: 200,
+            headers: { "Content-Type": "text/html;charset=UTF-8" },
+          });
+        }
+
+        if (isCrawler(request) && (!maybeTicker || reserved.has(maybeTicker))) {
+          const html = buildCrawlerHtml(url, null);
+          return new Response(html, {
+            status: 200,
+            headers: { "Content-Type": "text/html;charset=UTF-8" },
+          });
+        }
+
         const indexReq = new Request(new URL("/", url.origin), request);
         return env.ASSETS.fetch(indexReq);
       }

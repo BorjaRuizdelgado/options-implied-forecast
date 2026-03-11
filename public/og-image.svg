@@ -1,6 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <rect width="1200" height="630" fill="#F7F5F0"/>
-  <rect x="490" y="110" width="220" height="220" rx="36" fill="#eae7e0"/>
-  <text x="600" y="220" font-family="'Libre Baskerville', Georgia, serif" font-size="160" font-weight="700" fill="#4d6a61" text-anchor="middle" dy="0.35em">R</text>
-  <text x="600" y="430" font-family="'DM Sans', system-ui, sans-serif" font-size="48" fill="#4d6a61" text-anchor="middle" font-weight="600">Investing</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Ruizdelgado">
+  <rect width="1200" height="630" rx="64" fill="#F7F5F0"/>
+  <text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-family="Georgia, serif" font-weight="700" font-size="520" fill="#4D6A61">R</text>
 </svg>

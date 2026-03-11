@@ -657,12 +657,12 @@ function buildCrawlerHtml(url, ticker) {
   <meta property="og:url" content="${canonical}"/>
   <meta property="og:title" content="${title}"/>
   <meta property="og:description" content="${description}"/>
-  <meta property="og:image" content="${origin}/og-image.png"/>
+  <meta property="og:image" content="${origin}/og-image.jpg"/>
   <meta property="og:site_name" content="Borja Ruizdelgado — Investing Tools"/>
   <meta name="twitter:card" content="summary_large_image"/>
   <meta name="twitter:title" content="${title}"/>
   <meta name="twitter:description" content="${description}"/>
-  <meta name="twitter:image" content="${origin}/og-image.png"/>
+  <meta name="twitter:image" content="${origin}/og-image.jpg"/>
   <script type="application/ld+json">
   {
     "@context":"https://schema.org",
@@ -788,7 +788,7 @@ export default {
 
       // Serve important social/static assets with permissive headers so
       // crawlers and social scrapers reliably fetch images from the edge.
-      if (url.pathname === "/og-image.svg" || url.pathname === "/favicon.png") {
+      if (url.pathname === "/og-image.jpg" || url.pathname === "/og-image.svg" || url.pathname === "/favicon.png") {
         const assetRes = await env.ASSETS.fetch(request);
         const headers = new Headers(assetRes.headers);
         // Ensure CORS and a friendly cache policy for social scrapers

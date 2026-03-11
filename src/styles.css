@@ -928,14 +928,18 @@ hr {
 }
 
 /* ---- Landing ---- */
+
 .landing {
+  /* match the terminal/content container so homepage spacing is consistent */
+  width: 85%;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 60vh;
+  min-height: 48vh;
   text-align: center;
-  padding: 2rem 2.5rem;
+  padding: 2rem 0;
 }
 
 .landing h1 {
@@ -1190,6 +1194,16 @@ hr {
   margin-top: 0.55rem;
 }
   
+/* layout for each scenario row — label at left, value aligned right like a tab */
+.scenario-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
 .scenario-row:last-child {
   border-bottom: none;
   padding-bottom: 0;
@@ -1203,7 +1217,8 @@ hr {
 .scenario-value {
   font-size: 1.1rem;
   color: var(--text);
-  justify-self: start;
+  justify-self: end;
+  font-weight: 600;
 }
 
 .score-grid {
@@ -1523,6 +1538,20 @@ hr {
 /* ---- Fundamentals Panel ---- */
 .fundamentals {
   margin-bottom: 2rem;
+}
+
+/* Grid layout for fundamentals sections: two columns on desktop, single column on small screens */
+.fundamentals-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .fundamentals-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .fundamentals-title {

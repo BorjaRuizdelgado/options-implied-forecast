@@ -446,14 +446,16 @@ export default function FundamentalsPanel({ fundamentals }) {
         )}
       </section>
 
-      <FundamentalsTableSection title="Price" items={priceItems} />
-      <FundamentalsTableSection title="Valuation" items={valuationItems} />
-      <FundamentalsTableSection title="Profitability & Income Statement" items={profitabilityItems} />
-      <FundamentalsTableSection title="Balance Sheet & Cash Flow" items={balanceItems} />
-      <FundamentalsTableSection title="Dividends" items={dividendItems} />
-      <FundamentalsTableSection title="Trading" items={tradingItems} />
-      <FundamentalsTableSection title="Short Interest" items={shortInterestItems} />
-      <FundamentalsTableSection title="Analyst Estimates" items={analystItems} />
+      <div className="fundamentals-grid">
+        <FundamentalsTableSection title="Price" items={priceItems} />
+        <FundamentalsTableSection title="Valuation" items={valuationItems} />
+        <FundamentalsTableSection title="Profitability & Income Statement" items={profitabilityItems} />
+        <FundamentalsTableSection title="Balance Sheet & Cash Flow" items={balanceItems} />
+        <FundamentalsTableSection title="Dividends" items={dividendItems} />
+        <FundamentalsTableSection title="Trading" items={tradingItems} />
+        <FundamentalsTableSection title="Short Interest" items={shortInterestItems} />
+        <FundamentalsTableSection title="Analyst Estimates" items={analystItems} />
+      </div>
     </div>
   );
 }

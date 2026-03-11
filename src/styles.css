@@ -889,6 +889,9 @@ hr {
 
 .legal-page {
   max-width: 920px;
+  margin: 0 auto;
+  /* center the heading on the standalone legal page */
+  text-align: center;
 }
 
 .legal-card {
@@ -905,6 +908,11 @@ hr {
   display: flex;
   justify-content: flex-start;
   margin: 1rem 0 1.5rem;
+}
+
+/* Center the page-link-row when inside standalone `.main-content` (disclaimer/donate) */
+.main-content .page-link-row {
+  justify-content: center;
 }
 
 .page-link {
@@ -1702,10 +1710,11 @@ hr {
 /* ---- Support / Donation vault ---- */
 .support-vault {
   width: 100%;
+  max-width: 720px;
+  margin: 1.5rem auto;
   border: 1px dashed color-mix(in srgb, var(--accent) 35%, var(--border));
   background: color-mix(in srgb, var(--bg-alt) 78%, #d8d2c4 22%);
   box-shadow: 0 3px 14px rgba(0, 0, 0, 0.04);
-  margin-top: 1.5rem;
 }
 
 .support-vault[open] {

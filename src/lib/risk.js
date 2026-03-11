@@ -65,11 +65,22 @@ export function deriveRisk(fundamentals, analysis) {
 
   const finalScore = availableMetricCount >= 2 ? softenScore(score) : null;
 
+  // Map generic positive/negative labels to risk-oriented wording so the
+  // risk card reads intuitively (e.g. "Low" risk instead of "Strong").
+  const baseLabel = availableMetricCount >= 2 ? labelFromScore(finalScore) : "Unavailable";
+  const riskLabelMap = {
+    Strong: "Low",
+    Good: "Moderate",
+    Mixed: "Medium",
+    Weak: "High",
+    Unavailable: "Unavailable",
+  };
+
   return {
     hasData: availableMetricCount >= 2,
     availableMetricCount,
     score: finalScore,
-    label: availableMetricCount >= 2 ? labelFromScore(finalScore) : "Unavailable",
+    label: riskLabelMap[baseLabel] || baseLabel,
     metrics,
     reasons,
   };

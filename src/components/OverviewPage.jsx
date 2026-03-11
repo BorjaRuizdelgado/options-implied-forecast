@@ -31,7 +31,19 @@ function availableScoreCards(research) {
     research?.opportunity?.hasData ? { label: "Opportunity", value: research.opportunity.score, detail: research.opportunity.label, tooltip: METRIC_TIPS.opportunityScore } : null,
     research?.valuation?.hasData ? { label: "Valuation", value: research.valuation.score, detail: research.valuation.label, tooltip: METRIC_TIPS.valuationScore } : null,
     research?.quality?.hasData ? { label: "Quality", value: research.quality.score, detail: research.quality.label, tooltip: METRIC_TIPS.qualityScore } : null,
-    research?.risk?.hasData ? { label: "Risk", value: research.risk.score, detail: research.risk.label, tooltip: METRIC_TIPS.riskScore } : null,
+    // For risk, the internal score represents 'safety' (higher = better). Display
+    // an inverted value so the card shows a "risk level" (higher = worse), but
+    // keep the tone based on the original score so coloring still reflects
+    // whether the underlying signals are good or bad.
+    research?.risk?.hasData
+      ? {
+          label: "Risk",
+          value: Number.isFinite(research.risk.score) ? 100 - research.risk.score : research.risk.score,
+          detail: research.risk.label,
+          tooltip: METRIC_TIPS.riskScore,
+          _origScore: research.risk.score,
+        }
+      : null,
     research?.options?.score != null ? { label: "Options", value: research.options.score, detail: research.options.label, tooltip: METRIC_TIPS.optionsScore } : null,
   ].filter(Boolean);
 }
@@ -101,7 +113,7 @@ export default function OverviewPage({ ticker, spot, fundamentals, research, ana
                 key={card.label}
                 label={card.label}
                 score={card.value}
-                tone={tone(card.value)}
+                tone={card._origScore != null ? tone(card._origScore) : tone(card.value)}
                 detail={card.detail}
               />
             ))}

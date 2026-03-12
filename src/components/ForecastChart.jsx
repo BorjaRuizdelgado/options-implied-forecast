@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import Plot from "react-plotly.js";
 import { COLORS, LAYOUT_DEFAULTS, axisStyle, PLOTLY_CONFIG, chartHeight } from "../lib/theme.js";
+import { buildMaTracesAndAnnotations } from "../lib/ma.js";
 
 /**
  * Main forecast chart: historical price + expanding projection cone.
@@ -15,16 +16,17 @@ export default function ForecastChart({
   mp,
   history,
   dte,
+  overlays = {},
 }) {
   const { data, layout } = useMemo(() => {
     const dteDays = Math.max(Math.ceil(dte), 1);
     const traces = [];
 
     // ---- Dates setup ----
+    const maxHist = Math.max(dteDays * 2, 30);
     let histDates = [];
     let histPrices = [];
     if (history && history.length > 0) {
-      const maxHist = Math.max(dteDays * 2, 30);
       const slice = history.slice(-maxHist);
       histDates = slice.map((b) => b.date);
       histPrices = slice.map((b) => b.close);
@@ -110,6 +112,7 @@ export default function ForecastChart({
     });
 
     // Historical price line
+    const maAnnotations = [];
     if (histDates.length > 0) {
       traces.push({
         x: histDates,
@@ -129,6 +132,18 @@ export default function ForecastChart({
         name: `Current $${spot.toFixed(2)}`,
         hovertemplate: `<b>Current Price</b><br>$${spot.toFixed(2)}<extra></extra>`,
       });
+
+      // Moving averages
+      const ma = buildMaTracesAndAnnotations({
+        dates: history.map((b) => b.date),
+        closes: history.map((b) => b.close),
+        overlays,
+        variant: "forecast",
+        sliceLast: maxHist,
+        anchorSide: "right",
+      });
+      traces.push(...ma.traces);
+      maAnnotations.push(...ma.annotations);
     }
 
     // Endpoint dots
@@ -156,7 +171,7 @@ export default function ForecastChart({
     ];
 
     const tagStyle = { bgcolor: "rgba(247,245,240,0.85)", borderpad: 3 };
-    const annotations = [
+    const annotations = [...maAnnotations,
       { text: `<b>Spot</b> $${spot.toFixed(2)}`, x: 1.0, xref: "paper", y: spot, yref: "y", showarrow: false, xanchor: "right", yshift: 12, font: { size: 12, color: COLORS.text }, ...tagStyle },
       { text: `<b>Mean</b> $${dist.mean.toFixed(2)}`, x: 1.0, xref: "paper", y: dist.mean, yref: "y", showarrow: false, xanchor: "right", yshift: -12, font: { size: 12, color: COLORS.accent }, ...tagStyle },
       { text: "<b>Now</b>", x: anchor, xref: "x", y: 1.04, yref: "paper", showarrow: false, font: { size: 12, color: COLORS.textMuted } },
@@ -184,7 +199,7 @@ export default function ForecastChart({
     };
 
     return { data: traces, layout: lo };
-  }, [ticker, expiry, spot, dist, em, pctiles, mp, history, dte]);
+  }, [ticker, expiry, spot, dist, em, pctiles, mp, history, dte, overlays]);
 
   return (
     <div className="chart-section">

@@ -416,8 +416,10 @@ async function handleRate() {
 // ======================================================================
 
 async function handleCryptoOptions(currency) {
-  // Fetch instruments and one page of tickers in parallel
-  const [instrumentsResult, tickersResult] = await Promise.all([
+  const yfTicker = `${currency}-USD`;
+
+  // Fetch Bybit options data + Yahoo Finance fundamentals in parallel
+  const [instrumentsResult, tickersResult, yfData] = await Promise.all([
     fetchBybit("instruments-info", {
       category: "option",
       baseCoin: currency,
@@ -427,6 +429,9 @@ async function handleCryptoOptions(currency) {
       category: "option",
       baseCoin: currency,
     }),
+    fetchYF(`/v7/finance/options/${yfTicker}`)
+      .then((d) => d.optionChain?.result?.[0]?.quote || {})
+      .catch(() => ({})),
   ]);
 
   const instruments = instrumentsResult.list || [];
@@ -453,11 +458,30 @@ async function handleCryptoOptions(currency) {
     .sort((a, b) => a[1] - b[1])
     .map(([date, timestamp]) => ({ date, timestamp }));
 
+  // Build fundamentals from Yahoo Finance quote data (market cap, name, etc.)
+  const q = yfData;
+  const fundamentals = Object.keys(q).length > 0 ? {
+    name: q.shortName || q.longName || null,
+    longName: q.longName || null,
+    sector: null,
+    industry: null,
+    exchange: q.fullExchangeName || q.exchange || null,
+    currency: q.currency || null,
+    quoteType: q.quoteType || null,
+    marketCap: q.marketCap ?? null,
+    fiftyTwoWeekLow: q.fiftyTwoWeekLow ?? null,
+    fiftyTwoWeekHigh: q.fiftyTwoWeekHigh ?? null,
+    fiftyDayAverage: q.fiftyDayAverage ?? null,
+    twoHundredDayAverage: q.twoHundredDayAverage ?? null,
+    avgVolume: q.averageDailyVolume3Month ?? null,
+    avgVolume10d: q.averageDailyVolume10Day ?? null,
+  } : null;
+
   return jsonResp({
-    ticker: `${currency}-USD`,
+    ticker: yfTicker,
     price: spot,
     expirations,
-    fundamentals: null,
+    fundamentals,
   });
 }
 

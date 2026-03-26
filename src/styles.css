@@ -282,15 +282,14 @@ button {
   color: var(--accent);
 }
 
-/* Theme toggle button — icon only on desktop, full text on mobile */
+/* Theme toggle button */
 .app-header__theme-btn .theme-text {
   display: none;
 }
 
-@media (max-width: 640px) {
-  .app-header__theme-btn .theme-text {
-    display: inline;
-  }
+/* Mobile menu panel — hidden on desktop */
+.app-header__menu-panel {
+  display: none;
 }
 
 /* Mobile burger button */
@@ -1894,54 +1893,85 @@ hr {
 
   .app-header__search {
     display: none;
-    position: absolute;
-    top: 54px;
-    left: 0;
-    right: 0;
-    background: var(--bg-alt);
-    border-bottom: 1.2px solid var(--border);
-    padding: 0.75rem 1rem;
-    max-width: none;
-    z-index: 99;
-  }
-
-  .app-header__search--open {
-    display: block;
   }
 
   .app-header__nav {
     display: none;
-    position: absolute;
+  }
+
+  .app-header__menu-panel {
+    display: none;
+    position: fixed;
     top: 54px;
     left: 0;
     right: 0;
-    background: var(--bg-alt);
-    border-bottom: 1.2px solid var(--border);
-    padding: 0.5rem 1rem 0.75rem;
+    bottom: 0;
+    background: var(--bg);
+    z-index: 200;
     flex-direction: column;
-    align-items: stretch;
-    gap: 0;
-    z-index: 98;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .app-header__nav--open {
+  .app-header__menu-panel--open {
     display: flex;
   }
 
-  /* push nav below search when both open */
-  .app-header__search--open + .app-header__nav--open,
-  .app-header__search--open ~ .app-header__nav--open {
-    top: calc(54px + 52px);
+  .app-header__menu-search {
+    padding: 1rem 1.25rem;
+    border-bottom: 1.2px solid var(--border);
   }
 
-  .app-header__nav--open .app-header__nav-link {
-    padding: 0.55rem 0.5rem;
+  .app-header__menu-search .app-header__search-row {
+    display: flex;
+    gap: 0;
+  }
+
+  .app-header__menu-search input[type="text"] {
+    flex: 1;
+    padding: 0.65rem 0.85rem;
+    border: 1.2px solid var(--border);
+    border-right: none;
+    background: var(--bg-alt);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    outline: none;
+    min-width: 0;
+  }
+
+  .app-header__menu-search .app-header__search-btn {
+    padding: 0.65rem 1.2rem;
     font-size: 0.88rem;
-    border-bottom: 1px solid var(--border-light);
   }
 
-  .app-header__nav--open .app-header__nav-link:last-child {
+  .app-header__menu-links {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem 0;
+  }
+
+  .app-header__menu-link {
+    display: block;
+    padding: 0.85rem 1.25rem;
+    font-size: 0.95rem;
+    color: var(--text);
+    text-decoration: none;
+    border-bottom: 1px solid var(--border-light);
+    font-family: inherit;
+    text-align: left;
+    background: none;
+    cursor: pointer;
+  }
+
+  .app-header__menu-link:last-child {
     border-bottom: none;
+  }
+
+  .app-header__menu-link:hover,
+  .app-header__menu-link:active {
+    background: var(--bg-alt);
+    color: var(--accent);
   }
 
   .app-header__burger {

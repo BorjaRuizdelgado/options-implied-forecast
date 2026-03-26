@@ -1,111 +1,179 @@
 /**
- * Suggest options strategies based on analysis data and research scores.
+ * Suggest options strategies that align with the entry setup analysis.
+ *
+ * Strikes are chosen from the actual chain near the entry/target/stop levels
+ * so that the strategy and the entry setup tell a consistent story.
  */
 
-function findNearDeltaStrike(chain, spot, targetDelta, type) {
-  // Approximate delta by OTM distance — pick strike ~targetDelta away from spot
-  if (!chain?.length || !spot) return null
-
-  const otmFactor = type === 'put' ? 1 - targetDelta : 1 + targetDelta
-  const targetStrike = spot * (type === 'put' ? 1 - targetDelta * 0.5 : 1 + targetDelta * 0.5)
-
+function findStrikeNear(chain, price) {
+  if (!chain?.length || !price) return null
   let best = null
   let bestDist = Infinity
-
   for (const opt of chain) {
-    const dist = Math.abs(opt.strike - targetStrike)
+    const dist = Math.abs(opt.strike - price)
     if (dist < bestDist && opt.mid > 0) {
       bestDist = dist
       best = opt
     }
   }
-
   return best
 }
 
-export function suggestStrategies(analysis, research) {
+function fmt(n) {
+  return Number(n).toFixed(2)
+}
+
+export function suggestStrategies(analysis, _research) {
   if (!analysis?.ivData?.length || !analysis?.spot) return []
 
-  const strategies = []
   const spot = analysis.spot
+  const entry = analysis.entry
+  if (!entry) return []
+
   const puts = analysis.puts || []
   const calls = analysis.calls || []
+  const bias = entry.bias || 'neutral'
 
-  // Compute average IV
+  // IV stats
   const ivValues = analysis.ivData.filter((d) => d.iv > 0).map((d) => d.iv)
-  const avgIV = ivValues.length > 0 ? ivValues.reduce((a, b) => a + b, 0) / ivValues.length : 0
+  const avgIV = ivValues.length ? ivValues.reduce((a, b) => a + b, 0) / ivValues.length : 0
+  const ivPct = (avgIV * 100).toFixed(0)
+  const ivLabel = avgIV > 0.4 ? 'elevated' : avgIV > 0.25 ? 'moderate' : 'low'
 
-  // Compute skew (put IV vs call IV)
-  const putIVs = analysis.ivData.filter((d) => d.type === 'put' && d.iv > 0).map((d) => d.iv)
-  const callIVs = analysis.ivData.filter((d) => d.type === 'call' && d.iv > 0).map((d) => d.iv)
-  const avgPutIV = putIVs.length ? putIVs.reduce((a, b) => a + b, 0) / putIVs.length : 0
-  const avgCallIV = callIVs.length ? callIVs.reduce((a, b) => a + b, 0) / callIVs.length : 0
-  const skew = avgCallIV > 0 ? (avgPutIV - avgCallIV) / avgCallIV : 0
+  const strategies = []
 
-  const valScore = research?.valuation?.score ?? 50
+  // --- Bearish ---
+  if (bias === 'bearish') {
+    // Bear Put Spread: buy put near entry (resistance), sell put near target (support)
+    const longPut = findStrikeNear(puts, entry.entry)
+    const shortPut = findStrikeNear(puts, entry.target)
+    if (longPut && shortPut && longPut.strike > shortPut.strike) {
+      const cost = Math.max(0, longPut.mid - shortPut.mid)
+      const width = longPut.strike - shortPut.strike
+      const maxProfit = width - cost
+      strategies.push({
+        name: 'Bear Put Spread',
+        description:
+          `Buy the $${longPut.strike} put near resistance, sell the $${shortPut.strike} put near target support. ` +
+          `Profits if the stock falls from the entry zone toward the target.`,
+        legs: [
+          { type: 'Put', strike: longPut.strike, action: 'Buy' },
+          { type: 'Put', strike: shortPut.strike, action: 'Sell' },
+        ],
+        premium: `$${fmt(cost)} debit`,
+        maxRisk: `$${fmt(cost)} per share (premium paid)`,
+        rationale:
+          `Entry setup is bearish — entry $${fmt(entry.entry)}, target $${fmt(entry.target)}, stop $${fmt(entry.stop)}. ` +
+          `Spread width $${fmt(width)} captures the move to target. ` +
+          `Max profit $${fmt(maxProfit)} if stock reaches $${shortPut.strike} by expiry. IV is ${ivLabel} (${ivPct}%).`,
+      })
+    }
 
-  // Iron Condor: High IV + symmetric skew
-  if (avgIV > 0.3 && Math.abs(skew) < 0.15) {
-    const shortPut = findNearDeltaStrike(puts, spot, 0.25, 'put')
-    const shortCall = findNearDeltaStrike(calls, spot, 0.25, 'call')
+    // Protective Put: hedge existing longs at target/support level
+    const protPut = findStrikeNear(puts, entry.target)
+    if (protPut) {
+      strategies.push({
+        name: 'Protective Put',
+        description:
+          `Buy the $${protPut.strike} put near the target support level to hedge an existing long position.`,
+        legs: [{ type: 'Put', strike: protPut.strike, action: 'Buy' }],
+        premium: `$${fmt(protPut.mid)} debit`,
+        maxRisk: 'Limited to premium paid',
+        rationale:
+          `Bearish setup targets $${fmt(entry.target)}. This put protects below that level. ` +
+          `If you hold shares, the put offsets losses below $${protPut.strike}. IV is ${ivLabel} (${ivPct}%).`,
+      })
+    }
+  }
 
-    if (shortPut && shortCall) {
-      const premium = (shortPut.mid + shortCall.mid).toFixed(2)
+  // --- Bullish ---
+  if (bias === 'bullish') {
+    // Bull Call Spread: buy call near entry (support), sell call near target (resistance)
+    const longCall = findStrikeNear(calls, entry.entry)
+    const shortCall = findStrikeNear(calls, entry.target)
+    if (longCall && shortCall && shortCall.strike > longCall.strike) {
+      const cost = Math.max(0, longCall.mid - shortCall.mid)
+      const width = shortCall.strike - longCall.strike
+      const maxProfit = width - cost
+      strategies.push({
+        name: 'Bull Call Spread',
+        description:
+          `Buy the $${longCall.strike} call near support, sell the $${shortCall.strike} call near target resistance. ` +
+          `Profits if the stock rises from the entry zone toward the target.`,
+        legs: [
+          { type: 'Call', strike: longCall.strike, action: 'Buy' },
+          { type: 'Call', strike: shortCall.strike, action: 'Sell' },
+        ],
+        premium: `$${fmt(cost)} debit`,
+        maxRisk: `$${fmt(cost)} per share (premium paid)`,
+        rationale:
+          `Entry setup is bullish — entry $${fmt(entry.entry)}, target $${fmt(entry.target)}, stop $${fmt(entry.stop)}. ` +
+          `Spread width $${fmt(width)} captures the move to target. ` +
+          `Max profit $${fmt(maxProfit)} if stock reaches $${shortCall.strike} by expiry. IV is ${ivLabel} (${ivPct}%).`,
+      })
+    }
+
+    // Cash-Secured Put: sell put near entry/support, willing to own at that level
+    const cspPut = findStrikeNear(puts, entry.entry)
+    if (cspPut) {
+      strategies.push({
+        name: 'Cash-Secured Put',
+        description:
+          `Sell the $${cspPut.strike} put near the entry support level. Collect premium or buy shares at a discount if assigned.`,
+        legs: [{ type: 'Put', strike: cspPut.strike, action: 'Sell' }],
+        premium: `$${fmt(cspPut.mid)} credit`,
+        maxRisk: `$${fmt(cspPut.strike - cspPut.mid)} per share if assigned`,
+        rationale:
+          `Bullish setup — willing to own near support $${fmt(entry.entry)}. ` +
+          `If the stock stays above $${cspPut.strike} you keep the premium. ` +
+          `Stop level is $${fmt(entry.stop)}, below which the thesis breaks. IV is ${ivLabel} (${ivPct}%).`,
+      })
+    }
+  }
+
+  // --- Neutral ---
+  if (bias === 'neutral') {
+    // Iron Condor: sell put at support, sell call at resistance
+    const lvls = analysis.sr?.levels || []
+    const nearSup = lvls.filter((l) => l.price < spot).sort((a, b) => b.price - a.price)[0]
+    const nearRes = lvls.filter((l) => l.price > spot).sort((a, b) => a.price - b.price)[0]
+    const supPrice = nearSup?.price || entry.stop
+    const resPrice = nearRes?.price || entry.target
+
+    const shortPut = findStrikeNear(puts, supPrice)
+    const shortCall = findStrikeNear(calls, resPrice)
+    if (shortPut && shortCall && shortCall.strike > shortPut.strike) {
+      const premium = shortPut.mid + shortCall.mid
       strategies.push({
         name: 'Iron Condor',
-        description: 'Sell OTM put + OTM call, buy further OTM wings. Profits from low volatility.',
+        description:
+          `Sell the $${shortPut.strike} put at support and the $${shortCall.strike} call at resistance, buy further OTM wings. ` +
+          `Profits if the stock stays between support and resistance.`,
         legs: [
           { type: 'Put', strike: shortPut.strike, action: 'Sell' },
           { type: 'Call', strike: shortCall.strike, action: 'Sell' },
         ],
-        premium: `$${premium}`,
+        premium: `$${fmt(premium)} credit`,
         maxRisk: 'Width of wings minus premium',
-        rationale: `Average IV is ${(avgIV * 100).toFixed(0)}% (elevated) with symmetric skew (${(skew * 100).toFixed(1)}%). Range-bound conditions favor premium selling.`,
+        rationale:
+          `Neutral setup — no strong directional view. Support $${fmt(supPrice)}, resistance $${fmt(resPrice)}. ` +
+          `Stock expected to stay in range. IV is ${ivLabel} (${ivPct}%), favoring premium selling.`,
       })
     }
-  }
 
-  // Cash-Secured Put: Bullish skew + decent valuation
-  if (skew > -0.15 && valScore >= 45) {
-    const cspPut = findNearDeltaStrike(puts, spot, 0.25, 'put')
-    if (cspPut) {
-      strategies.push({
-        name: 'Cash-Secured Put',
-        description: 'Sell an OTM put to collect premium or buy shares at a discount.',
-        legs: [{ type: 'Put', strike: cspPut.strike, action: 'Sell' }],
-        premium: `$${cspPut.mid.toFixed(2)}`,
-        maxRisk: `$${(cspPut.strike - cspPut.mid).toFixed(2)} per share`,
-        rationale: `Valuation score is ${Math.round(valScore)}/100. Put skew at ${(skew * 100).toFixed(1)}% suggests limited downside concern. Willing to own at ${cspPut.strike}.`,
-      })
-    }
-  }
-
-  // Protective Put: Bearish signals
-  if (skew > 0.05 || (research?.risk?.score != null && research.risk.score >= 60)) {
-    const protPut = findNearDeltaStrike(puts, spot, 0.2, 'put')
-    if (protPut) {
-      strategies.push({
-        name: 'Protective Put',
-        description: 'Buy an OTM put to hedge downside risk on an existing position.',
-        legs: [{ type: 'Put', strike: protPut.strike, action: 'Buy' }],
-        premium: `$${protPut.mid.toFixed(2)} (cost)`,
-        maxRisk: `Limited to premium paid`,
-        rationale: `${skew > 0.05 ? `Put skew is elevated (${(skew * 100).toFixed(1)}%), suggesting demand for downside protection.` : `Risk score is ${Math.round(research.risk.score)}/100, indicating elevated fragility.`}`,
-      })
-    }
-  }
-
-  // Covered Call: Low IV + high quality
-  if (avgIV < 0.35 && (research?.quality?.score ?? 0) >= 55) {
-    const ccCall = findNearDeltaStrike(calls, spot, 0.3, 'call')
+    // Covered Call at resistance
+    const ccCall = findStrikeNear(calls, resPrice)
     if (ccCall) {
       strategies.push({
         name: 'Covered Call',
-        description: 'Sell an OTM call against existing shares to generate income.',
+        description:
+          `Sell the $${ccCall.strike} call near resistance to generate income on existing shares.`,
         legs: [{ type: 'Call', strike: ccCall.strike, action: 'Sell' }],
-        premium: `$${ccCall.mid.toFixed(2)}`,
-        maxRisk: `Capped upside at $${ccCall.strike}`,
-        rationale: `Quality score is ${Math.round(research.quality.score)}/100 with moderate IV (${(avgIV * 100).toFixed(0)}%). Good candidate for income generation on a quality holding.`,
+        premium: `$${fmt(ccCall.mid)} credit`,
+        maxRisk: `Capped upside above $${ccCall.strike}`,
+        rationale:
+          `Neutral bias — limited upside expected past resistance $${fmt(resPrice)}. ` +
+          `Collect premium while holding. IV is ${ivLabel} (${ivPct}%).`,
       })
     }
   }

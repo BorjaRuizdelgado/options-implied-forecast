@@ -171,8 +171,6 @@ export default function OptionsPage({
       <PercentileExpander pctiles={analysis.pctiles} spot={analysis.spot} />
       <DistributionExpander dist={analysis.dist} />
       <EntryExpander entryInfo={analysis.entry} sr={analysis.sr} />
-      <PcrExpander pcr={analysis.pcr} />
-
       <StrategySuggestions analysis={analysis} research={research} />
     </div>
   )

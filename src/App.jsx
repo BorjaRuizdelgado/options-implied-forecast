@@ -72,6 +72,7 @@ export default function App() {
     loading,
     error,
     ticker,
+    spot,
     expirations,
     selectedExpiry,
     analysis,
@@ -288,7 +289,7 @@ export default function App() {
           </div>
         )}
 
-        {page === 'terminal' && analysis && research && (
+        {page === 'terminal' && research && (
           <>
             <div className="terminal-tabs-bar">
               <TerminalTabs
@@ -311,7 +312,7 @@ export default function App() {
                 <ErrorBoundary name="OverviewPage">
                   <OverviewPage
                     ticker={ticker}
-                    spot={analysis.spot}
+                    spot={spot ?? analysis?.spot}
                     fundamentals={fundamentals}
                     research={research}
                     analysis={analysis}

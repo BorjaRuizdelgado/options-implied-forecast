@@ -287,3 +287,203 @@ describe('CORS headers', () => {
     expect(res.headers.get('Access-Control-Allow-Methods')).toContain('GET')
   })
 })
+
+// ---------------------------------------------------------------------------
+// No-options path: tickers where YF has no option chain (e.g. AVAX)
+// ---------------------------------------------------------------------------
+
+const YF_OPTIONS_EMPTY = {
+  optionChain: { result: [] },
+}
+
+const YF_QUOTE_AVAX = {
+  quoteResponse: {
+    result: [
+      {
+        symbol: 'AVAX-USD',
+        shortName: 'Avalanche USD',
+        regularMarketPrice: 38.5,
+        regularMarketChange: 0.5,
+        regularMarketChangePercent: 1.3,
+        marketCap: 15000000000,
+        quoteType: 'CRYPTOCURRENCY',
+      },
+    ],
+  },
+}
+
+function mockFetchImplNoOptions(url) {
+  const u = typeof url === 'string' ? url : url.toString()
+
+  if (u.includes('fc.yahoo.com')) {
+    return Promise.resolve(
+      new Response('', { status: 302, headers: { 'set-cookie': 'A3=d=test; path=/' } }),
+    )
+  }
+  if (u.includes('getcrumb')) {
+    return Promise.resolve(new Response(CRUMB_TEXT, { status: 200 }))
+  }
+
+  // Options endpoint returns empty result (no listed options)
+  if (u.includes('/v7/finance/options/')) {
+    return Promise.resolve(new Response(JSON.stringify(YF_OPTIONS_EMPTY), { status: 200 }))
+  }
+  // Direct quote fetch returns AVAX price
+  if (u.includes('/v7/finance/quote')) {
+    return Promise.resolve(new Response(JSON.stringify(YF_QUOTE_AVAX), { status: 200 }))
+  }
+  if (u.includes('/v10/finance/quoteSummary/')) {
+    return Promise.resolve(new Response(JSON.stringify(YF_SUMMARY), { status: 200 }))
+  }
+  if (u.includes('/v8/finance/chart/') && u.includes('IRX')) {
+    return Promise.resolve(new Response(JSON.stringify(YF_RATE), { status: 200 }))
+  }
+  if (u.includes('/v8/finance/chart/')) {
+    return Promise.resolve(new Response(JSON.stringify(YF_CHART), { status: 200 }))
+  }
+  // Bybit API → 404 (coin not supported or request fails)
+  if (u.includes('api.bybit.com')) {
+    return Promise.resolve(new Response('Not found', { status: 404 }))
+  }
+  // Deribit API → 404 (AVAX not supported)
+  if (u.includes('deribit.com')) {
+    return Promise.resolve(new Response('Not found', { status: 404 }))
+  }
+
+  return Promise.resolve(new Response('Not found', { status: 404 }))
+}
+
+describe('Worker /api/options — no-options ticker (e.g. AVAX)', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn(mockFetchImplNoOptions))
+  })
+
+  it('returns 200 (not 400/500) when no option chain exists', async () => {
+    const res = await callWorker('/api/options?ticker=AVAX')
+    expect(res.status).toBe(200)
+  })
+
+  it('returns empty expirations array when no options exist', async () => {
+    const res = await callWorker('/api/options?ticker=AVAX')
+    const data = await res.json()
+    expect(Array.isArray(data.expirations)).toBe(true)
+    expect(data.expirations).toHaveLength(0)
+  })
+
+  it('returns price from fallback quote when options endpoint has no quote', async () => {
+    const res = await callWorker('/api/options?ticker=AVAX')
+    const data = await res.json()
+    expect(typeof data.price).toBe('number')
+    expect(data.price).toBeGreaterThan(0)
+    expect(data.price).toBe(38.5)
+  })
+
+  it('returns ticker and fundamentals in response', async () => {
+    const res = await callWorker('/api/options?ticker=AVAX')
+    const data = await res.json()
+    expect(data).toHaveProperty('ticker')
+    expect(data).toHaveProperty('fundamentals')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Crypto routing: Bybit → Deribit → Yahoo Finance
+// ---------------------------------------------------------------------------
+
+const BYBIT_OPTIONS = {
+  retCode: 0,
+  result: {
+    category: 'option',
+    list: [
+      {
+        symbol: 'BTC-29NOV24-90000-C',
+        expiry: '2024-11-29',
+        strike: '90000',
+        optionType: 'Call',
+        bidPrice: '1000',
+        askPrice: '1100',
+        lastPrice: '1050',
+        impliedVolatility: '0.65',
+        openInterest: '50',
+      },
+    ],
+  },
+}
+
+const BYBIT_TICKERS = {
+  retCode: 0,
+  result: {
+    list: [
+      {
+        symbol: 'BTC-USDT',
+        lastPrice: '95000',
+      },
+    ],
+  },
+}
+
+function mockFetchImplBybit(url) {
+  const u = typeof url === 'string' ? url : url.toString()
+
+  if (u.includes('fc.yahoo.com')) {
+    return Promise.resolve(
+      new Response('', { status: 302, headers: { 'set-cookie': 'A3=d=test; path=/' } }),
+    )
+  }
+  if (u.includes('getcrumb')) {
+    return Promise.resolve(new Response(CRUMB_TEXT, { status: 200 }))
+  }
+
+  if (u.includes('api.bybit.com') && u.includes('/option/instruments-info')) {
+    return Promise.resolve(new Response(JSON.stringify(BYBIT_OPTIONS), { status: 200 }))
+  }
+  if (u.includes('api.bybit.com') && u.includes('/tickers')) {
+    return Promise.resolve(new Response(JSON.stringify(BYBIT_TICKERS), { status: 200 }))
+  }
+  if (u.includes('api.bybit.com')) {
+    return Promise.resolve(new Response(JSON.stringify(BYBIT_OPTIONS), { status: 200 }))
+  }
+  if (u.includes('/v7/finance/options/')) {
+    return Promise.resolve(new Response(JSON.stringify(YF_OPTIONS), { status: 200 }))
+  }
+  if (u.includes('/v7/finance/quote')) {
+    return Promise.resolve(new Response(JSON.stringify(YF_QUOTE), { status: 200 }))
+  }
+  if (u.includes('/v10/finance/quoteSummary/')) {
+    return Promise.resolve(new Response(JSON.stringify(YF_SUMMARY), { status: 200 }))
+  }
+  if (u.includes('/v8/finance/chart/') && u.includes('IRX')) {
+    return Promise.resolve(new Response(JSON.stringify(YF_RATE), { status: 200 }))
+  }
+  if (u.includes('/v8/finance/chart/')) {
+    return Promise.resolve(new Response(JSON.stringify(YF_CHART), { status: 200 }))
+  }
+
+  return Promise.resolve(new Response('Not found', { status: 404 }))
+}
+
+describe('Worker /api/options — crypto routing', () => {
+  it('accepts BTC (Bybit-supported crypto) without error', async () => {
+    vi.stubGlobal('fetch', vi.fn(mockFetchImplBybit))
+    const res = await callWorker('/api/options?ticker=BTC')
+    expect(res.status).toBe(200)
+  })
+
+  it('falls back to Yahoo Finance when Bybit is unsupported and Deribit fails', async () => {
+    // AVAX: not Bybit-supported, not Deribit-supported → goes straight to YF
+    vi.stubGlobal('fetch', vi.fn(mockFetchImplNoOptions))
+    const res = await callWorker('/api/options?ticker=AVAX')
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    // YF had empty optionChain, so expirations empty but response still 200
+    expect(data.expirations).toHaveLength(0)
+  })
+
+  it('returns expirations for standard equity (non-crypto)', async () => {
+    vi.stubGlobal('fetch', vi.fn(mockFetchImpl))
+    const res = await callWorker('/api/options?ticker=AAPL')
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.expirations.length).toBeGreaterThan(0)
+  })
+})

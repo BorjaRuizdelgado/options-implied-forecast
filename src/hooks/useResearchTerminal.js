@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { fetchOptions, fetchRate, daysToExpiry } from '../lib/fetcher.js'
+import { fetchOptions, fetchRate, fetchHistory, daysToExpiry } from '../lib/fetcher.js'
 import { runSingleChain, runWeightedChains } from '../lib/chainRunner.js'
 import { deriveValuation } from '../lib/valuation.js'
 import { deriveQuality } from '../lib/quality.js'
@@ -9,7 +9,7 @@ import { deriveTechnicals } from '../lib/technicals.js'
 import { deriveOpportunity, deriveOptionsSentiment, deriveSignals } from '../lib/signals.js'
 import { tickerFromPath } from '../lib/routes.js'
 
-function deriveResearch(fundamentals, analysis, spot) {
+function deriveResearch(fundamentals, analysis, spot, historyBars = null) {
   const valuation = deriveValuation(fundamentals, spot)
   const quality = deriveQuality(fundamentals)
   const risk = deriveRisk(fundamentals, analysis)
@@ -29,7 +29,9 @@ function deriveResearch(fundamentals, analysis, spot) {
     analystUpsidePct: valuation.analystUpsidePct,
   })
   const business = deriveBusiness(fundamentals)
-  const technicals = deriveTechnicals(analysis, spot)
+  // Use analysis (has history inside) or standalone history bars for technicals
+  const techInput = analysis ?? (historyBars ? { history: historyBars } : null)
+  const technicals = deriveTechnicals(techInput, spot)
   const fundamentalsHasData = Boolean(
     fundamentals &&
     Object.entries(fundamentals).some(([key, value]) => {
@@ -106,27 +108,37 @@ export default function useResearchTerminal() {
       try {
         const [optData, rateData] = await Promise.all([fetchOptions(tickerInput), fetchRate()])
 
-        if (!optData.expirations?.length) {
-          throw new Error(`No options data available for ${tickerInput}`)
-        }
-
-        const validExps = optData.expirations.filter((e) => daysToExpiry(e.date) >= 1)
-        if (validExps.length === 0) {
-          throw new Error(`No valid expirations for ${tickerInput}`)
-        }
-
         const resolvedTicker = optData.ticker || tickerInput
         setTicker(resolvedTicker)
         setSpot(optData.price)
         setFundamentals(optData.fundamentals || null)
-        setExpirations(validExps)
-        setSelectedExpiry(validExps[0])
 
         const basePath = `/${encodeURIComponent(resolvedTicker)}`
-        // Only update the URL if it doesn't already start with the resolved ticker
         if (!window.location.pathname.startsWith(basePath)) {
           window.history.pushState(null, '', basePath)
         }
+
+        const validExps = (optData.expirations || []).filter((e) => daysToExpiry(e.date) >= 1)
+
+        if (validExps.length === 0) {
+          // No options available — still show fundamentals-based tabs
+          setExpirations([])
+          setSelectedExpiry(null)
+          setAnalysis(null)
+          // Fetch price history for technicals even without options
+          let histBars = null
+          try {
+            const histData = await fetchHistory(resolvedTicker, 300)
+            histBars = histData?.bars?.length > 0 ? histData.bars : null
+          } catch {
+            /* history unavailable */
+          }
+          setResearch(deriveResearch(optData.fundamentals || null, null, optData.price, histBars))
+          return
+        }
+
+        setExpirations(validExps)
+        setSelectedExpiry(validExps[0])
 
         await runAnalysis(
           resolvedTicker,

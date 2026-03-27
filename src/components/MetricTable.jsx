@@ -5,6 +5,7 @@ import { isLowerBetter } from '../lib/sectorMedians.js'
 
 function formatMetric(metric) {
   if (metric.value == null || Number.isNaN(metric.value)) return 'N/A'
+  if (metric.kind === 'text') return String(metric.value)
   if (metric.kind === 'pct') return fmtPct(metric.value)
   if (metric.kind === 'pct-whole') return `${Number(metric.value).toFixed(1)}%`
   if (metric.kind === 'money') return fmt(metric.value)

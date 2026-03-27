@@ -1287,6 +1287,21 @@ hr {
   min-height: 168px;
 }
 
+.terminal-card--clickable {
+  cursor: pointer;
+  transition:
+    border-color 0.25s var(--ease),
+    box-shadow 0.25s var(--ease);
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.terminal-card--clickable:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
 .terminal-eyebrow {
   display: inline-flex;
   align-items: center;

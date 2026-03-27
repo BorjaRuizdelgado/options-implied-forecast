@@ -6,6 +6,10 @@ import {
   averageScore,
   softenScore,
   labelFromScore,
+  opportunityLabel,
+  valuationLabel,
+  metricSentiment,
+  buildFundamentalsScore,
 } from '../scoring.js'
 
 // ---------------------------------------------------------------------------
@@ -217,5 +221,133 @@ describe('no NaN propagation', () => {
     expect(Number.isNaN(averageScore([NaN, NaN]))).toBe(false)
     const result = averageScore([NaN, NaN])
     expect(result).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// opportunityLabel
+// ---------------------------------------------------------------------------
+
+describe('opportunityLabel', () => {
+  it('returns Unattractive for score < 35', () => {
+    expect(opportunityLabel(10)).toBe('Unattractive')
+    expect(opportunityLabel(34.9)).toBe('Unattractive')
+  })
+  it('returns Watchlist for 35-54', () => {
+    expect(opportunityLabel(35)).toBe('Watchlist')
+    expect(opportunityLabel(54.9)).toBe('Watchlist')
+  })
+  it('returns Interesting for 55-74', () => {
+    expect(opportunityLabel(55)).toBe('Interesting')
+    expect(opportunityLabel(74.9)).toBe('Interesting')
+  })
+  it('returns High-conviction for >= 75', () => {
+    expect(opportunityLabel(75)).toBe('High-conviction')
+    expect(opportunityLabel(100)).toBe('High-conviction')
+  })
+  it('returns Unavailable for non-finite', () => {
+    expect(opportunityLabel(null)).toBe('Unavailable')
+    expect(opportunityLabel(NaN)).toBe('Unavailable')
+    expect(opportunityLabel(undefined)).toBe('Unavailable')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// valuationLabel
+// ---------------------------------------------------------------------------
+
+describe('valuationLabel', () => {
+  it('returns Expensive for score < 35', () => {
+    expect(valuationLabel(20)).toBe('Expensive')
+  })
+  it('returns Fair for 35-59', () => {
+    expect(valuationLabel(50)).toBe('Fair')
+  })
+  it('returns Undervalued for >= 60', () => {
+    expect(valuationLabel(60)).toBe('Undervalued')
+    expect(valuationLabel(95)).toBe('Undervalued')
+  })
+  it('returns Unavailable for non-finite', () => {
+    expect(valuationLabel(null)).toBe('Unavailable')
+    expect(valuationLabel(NaN)).toBe('Unavailable')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// metricSentiment
+// ---------------------------------------------------------------------------
+
+describe('metricSentiment', () => {
+  it('returns null for null/NaN values', () => {
+    expect(metricSentiment('trailingPE', null)).toBeNull()
+    expect(metricSentiment('trailingPE', NaN)).toBeNull()
+    expect(metricSentiment('trailingPE', 'hello')).toBeNull()
+  })
+
+  it('scores PE correctly', () => {
+    expect(metricSentiment('trailingPE', 12)).toBe('positive')
+    expect(metricSentiment('trailingPE', 35)).toBe('negative')
+    expect(metricSentiment('trailingPE', 20)).toBeNull()
+    expect(metricSentiment('forwardPE', 12)).toBe('positive')
+  })
+
+  it('scores cashflow/income positive when > 0', () => {
+    expect(metricSentiment('freeCashflow', 1e9)).toBe('positive')
+    expect(metricSentiment('freeCashflow', -1e9)).toBe('negative')
+    expect(metricSentiment('netIncome', 500)).toBe('positive')
+  })
+
+  it('scores growth positive when > 0', () => {
+    expect(metricSentiment('revenueGrowth', 0.1)).toBe('positive')
+    expect(metricSentiment('earningsGrowth', -0.05)).toBe('negative')
+  })
+
+  it('scores debtToEquity low is better', () => {
+    expect(metricSentiment('debtToEquity', 40)).toBe('positive')
+    expect(metricSentiment('debtToEquity', 200)).toBe('negative')
+    expect(metricSentiment('debtToEquity', 100)).toBeNull()
+  })
+
+  it('returns null for unknown keys', () => {
+    expect(metricSentiment('unknownMetric', 42)).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// buildFundamentalsScore
+// ---------------------------------------------------------------------------
+
+describe('buildFundamentalsScore', () => {
+  it('returns hasData:false when fewer than 3 valid metrics', () => {
+    const result = buildFundamentalsScore({})
+    expect(result.hasData).toBe(false)
+    expect(result.score).toBeNull()
+    expect(result.label).toBe('Unavailable')
+  })
+
+  it('returns hasData:true with enough fundamentals', () => {
+    const f = {
+      forwardPE: 18,
+      profitMargins: 0.2,
+      returnOnEquity: 0.2,
+      debtToEquity: 40,
+      currentRatio: 2.0,
+    }
+    const result = buildFundamentalsScore(f)
+    expect(result.hasData).toBe(true)
+    expect(typeof result.score).toBe('number')
+    expect(['Strong', 'Mixed', 'Weak']).toContain(result.label)
+    expect(['positive', 'negative', 'neutral']).toContain(result.tone)
+  })
+
+  it('score is finite and within softened range', () => {
+    const f = {
+      forwardPE: 18, profitMargins: 0.2, returnOnEquity: 0.2,
+      debtToEquity: 40, currentRatio: 2.0, beta: 1.0,
+    }
+    const { score } = buildFundamentalsScore(f)
+    expect(Number.isFinite(score)).toBe(true)
+    expect(score).toBeGreaterThan(0)
+    expect(score).toBeLessThanOrEqual(100)
   })
 })

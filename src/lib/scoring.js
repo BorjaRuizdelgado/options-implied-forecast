@@ -5,40 +5,40 @@ function clamp(value, min = 0, max = 100) {
 }
 
 function safeNumber(value) {
-  return Number.isFinite(value) ? value : null
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
 export function averageScore(parts) {
-  const valid = parts.map(safeNumber).filter((value) => value != null)
+  const valid = parts.map(safeNumber).filter((v) => v != null)
   if (valid.length === 0) return null
   return valid.reduce((sum, value) => sum + value, 0) / valid.length
 }
 
 export function countValidScores(parts) {
-  return parts.map(safeNumber).filter((value) => value != null).length
+  return parts.map(safeNumber).filter((v) => v != null).length
 }
 
 export function softenScore(score, floor = SOFTEN_FLOOR, ceiling = SOFTEN_CEILING) {
-  if (!Number.isFinite(score)) return null
+  if (typeof score !== 'number' || !Number.isFinite(score)) return null
   return floor + (score / 100) * (ceiling - floor)
 }
 
 export function scoreLowBetter(value, good, bad) {
-  if (!Number.isFinite(value)) return null
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
   if (value <= good) return 100
   if (value >= bad) return 0
   return clamp(100 * ((bad - value) / (bad - good)))
 }
 
 export function scoreHighBetter(value, bad, good) {
-  if (!Number.isFinite(value)) return null
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
   if (value <= bad) return 0
   if (value >= good) return 100
   return clamp(100 * ((value - bad) / (good - bad)))
 }
 
 export function scoreRangeBetter(value, lowGood, highGood, lowBad, highBad) {
-  if (!Number.isFinite(value)) return null
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
   if (value >= lowGood && value <= highGood) return 100
   if (value < lowGood) {
     if (value <= lowBad) return 0
@@ -49,7 +49,7 @@ export function scoreRangeBetter(value, lowGood, highGood, lowBad, highBad) {
 }
 
 export function labelFromScore(score, bands = [BAND_WEAK, BAND_MIXED, BAND_GOOD]) {
-  if (!Number.isFinite(score)) return 'Unavailable'
+  if (typeof score !== 'number' || !Number.isFinite(score)) return 'Unavailable'
   if (score < bands[0]) return 'Weak'
   if (score < bands[1]) return 'Mixed'
   if (score < bands[2]) return 'Good'
@@ -57,7 +57,7 @@ export function labelFromScore(score, bands = [BAND_WEAK, BAND_MIXED, BAND_GOOD]
 }
 
 export function opportunityLabel(score) {
-  if (!Number.isFinite(score)) return 'Unavailable'
+  if (typeof score !== 'number' || !Number.isFinite(score)) return 'Unavailable'
   if (score < 35) return 'Unattractive'
   if (score < 55) return 'Watchlist'
   if (score < 75) return 'Interesting'
@@ -65,14 +65,14 @@ export function opportunityLabel(score) {
 }
 
 export function valuationLabel(score) {
-  if (!Number.isFinite(score)) return 'Unavailable'
+  if (typeof score !== 'number' || !Number.isFinite(score)) return 'Unavailable'
   if (score < 35) return 'Expensive'
   if (score < 60) return 'Fair'
   return 'Undervalued'
 }
 
 export function metricSentiment(key, val) {
-  if (val == null || isNaN(val)) return null
+  if (val == null || typeof val !== 'number' || isNaN(val)) return null
   switch (key) {
     case 'trailingPE':
     case 'forwardPE':
@@ -180,7 +180,12 @@ export function buildFundamentalsScore(f) {
   return {
     hasData: true,
     score,
-    label: score >= 70 ? 'Strong' : score < 45 ? 'Weak' : 'Mixed',
-    tone: score >= 70 ? 'positive' : score < 45 ? 'negative' : 'neutral',
+    label: score != null && score >= 70 ? 'Strong' : score != null && score < 45 ? 'Weak' : 'Mixed',
+    tone:
+      score != null && score >= 70
+        ? 'positive'
+        : score != null && score < 45
+          ? 'negative'
+          : 'neutral',
   }
 }

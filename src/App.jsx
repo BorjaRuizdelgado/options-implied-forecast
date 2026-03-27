@@ -125,10 +125,14 @@ export default function App() {
       else if (p === DONATE_PATH) setPage('donate')
       else if (p === WATCHLIST_PATH) setPage('watchlist')
       else if (isComparePath(p)) setPage('compare')
-      else setPage('terminal')
-
-      const tab = tabFromPath(window.location.pathname)
-      if (tab) setActiveTab(tab)
+      else {
+        setPage('terminal')
+        // tabFromPath returns null for bare ticker URLs like /NVDA (no tab segment),
+        // which represents the overview. Default to 'overview' so the back button
+        // correctly restores the overview when returning from a tab like /NVDA/technicals.
+        const tab = tabFromPath(window.location.pathname)
+        setActiveTab(tab || 'overview')
+      }
     }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)

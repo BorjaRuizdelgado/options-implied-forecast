@@ -111,7 +111,7 @@ export default function BusinessPage({ ticker, fundamentals, research }) {
                   { field: 'operatingIncome', label: 'Operating income' },
                   { field: 'netIncome', label: 'Net income' },
                 ]}
-                colors={[getColors().accent, getColors().accentWarm, getColors().textLight]}
+                colors={[getColors().green, getColors().accentWarm, getColors().accent]}
               />
             )}
             {business?.hasCashflowSeries && (
@@ -123,7 +123,7 @@ export default function BusinessPage({ ticker, fundamentals, research }) {
                   { field: 'freeCashflow', label: 'Free cash flow' },
                   { field: 'capitalExpenditures', label: 'Capex' },
                 ]}
-                colors={[getColors().accent, getColors().green, getColors().red]}
+                colors={[getColors().green, getColors().accentWarm, getColors().red]}
               />
             )}
           </div>

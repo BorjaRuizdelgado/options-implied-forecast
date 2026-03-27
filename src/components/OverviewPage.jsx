@@ -13,17 +13,29 @@ function tone(score) {
   return 'neutral'
 }
 
-function VerdictCard({ label, value, caption, tooltip }) {
+function VerdictCard({ label, value, caption, tooltip, onClick }) {
+  const Tag = onClick ? 'button' : 'div'
   return (
-    <div className="terminal-card terminal-card--compact">
+    <Tag
+      className={`terminal-card terminal-card--compact${onClick ? ' terminal-card--clickable' : ''}`}
+      onClick={onClick}
+      type={onClick ? 'button' : undefined}
+    >
       <div className="terminal-eyebrow">
         {label}
         {tooltip && <Tooltip text={tooltip} />}
       </div>
       <div className="terminal-stat">{value}</div>
       {caption && <div className="terminal-caption">{caption}</div>}
-    </div>
+    </Tag>
   )
+}
+
+// Map verdict label → tab id
+const VERDICT_TO_TAB = {
+  'Valuation Verdict': 'value',
+  'Quality Verdict': 'quality',
+  'Risk Verdict': 'risk',
 }
 
 // Map score label → tab id
@@ -201,9 +213,16 @@ export default function OverviewPage({
             <h2>At A Glance</h2>
           </div>
           <div className="terminal-grid terminal-grid--3">
-            {verdicts.map((verdict) => (
-              <VerdictCard key={verdict.label} {...verdict} />
-            ))}
+            {verdicts.map((verdict) => {
+              const tabId = VERDICT_TO_TAB[verdict.label]
+              return (
+                <VerdictCard
+                  key={verdict.label}
+                  {...verdict}
+                  onClick={tabId && onTabChange ? () => onTabChange(tabId) : undefined}
+                />
+              )
+            })}
           </div>
         </section>
       )}

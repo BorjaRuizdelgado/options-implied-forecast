@@ -35,6 +35,9 @@ export const LIKELY_CRYPTO = new Set([
 /** Coins with verified Bybit options coverage */
 export const BYBIT_SUPPORTED = new Set(['BTC', 'ETH', 'SOL', 'XRP', 'DOGE'])
 
+/** Coins with verified Deribit options coverage */
+export const DERIBIT_SUPPORTED = new Set(['BTC', 'ETH', 'SOL'])
+
 /** Suffixes stripped from crypto tickers to get the base symbol */
 const CRYPTO_SUFFIXES = ['-USDT', '-USD', '-PERP', 'USDT', 'USD']
 
@@ -58,6 +61,11 @@ export function isCrypto(ticker) {
 /** Returns true if Bybit has options for this coin */
 export function isBybitSupported(ticker) {
   return BYBIT_SUPPORTED.has(stripCryptoSuffix(ticker))
+}
+
+/** Returns true if Deribit has options for this coin */
+export function isDeribitSupported(ticker) {
+  return DERIBIT_SUPPORTED.has(stripCryptoSuffix(ticker))
 }
 
 /**

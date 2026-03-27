@@ -68,7 +68,16 @@ export default function OptionsPage({
     setEntryOverlays((prev) => ({ ...prev, [key]: !prev[key] }))
   }, [])
 
-  if (!analysis) return null
+  if (!analysis) {
+    return (
+      <div className="options-page">
+        <div className="info-box info-box--muted">
+          <strong>No options data available.</strong> Listed options were not found for this ticker.
+          Fundamental analysis tabs are still available above.
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="options-page">

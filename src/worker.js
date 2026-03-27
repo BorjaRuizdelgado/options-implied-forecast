@@ -13,10 +13,11 @@
  *   Everything else                      → static assets (SPA)
  */
 
-import { isCrypto, isBybitSupported, normalizeTicker, stripCryptoSuffix } from './lib/tickers.js'
+import { isCrypto, isBybitSupported, isDeribitSupported, normalizeTicker, stripCryptoSuffix } from './lib/tickers.js'
 
 const YF_BASE = 'https://query2.finance.yahoo.com'
 const BYBIT_BASE = 'https://api.bybit.com/v5/market'
+const DERIBIT_BASE = 'https://www.deribit.com/api/v2/public'
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
 
@@ -169,6 +170,16 @@ async function fetchBybit(endpoint, params = {}) {
   return data.result
 }
 
+async function fetchDeribit(endpoint, params = {}) {
+  const url = new URL(`${DERIBIT_BASE}/${endpoint}`)
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v)
+  const res = await fetch(url.toString(), { headers: { Accept: 'application/json' } })
+  if (!res.ok) throw new Error(`Deribit ${res.status}: ${res.statusText}`)
+  const data = await res.json()
+  if (data.error) throw new Error(`Deribit: ${data.error.message || JSON.stringify(data.error)}`)
+  return data.result
+}
+
 /**
  * Parse Bybit symbol expiry string "5MAR26" → "2026-03-05".
  */
@@ -202,20 +213,26 @@ function parseBybitExpiry(expStr) {
 // ======================================================================
 
 async function handleOptions(ticker) {
-  // Fetch options data and detailed summary in parallel
-  const [data, summaryData] = await Promise.all([
-    fetchYF(`/v7/finance/options/${ticker}`),
+  // Fetch options data and detailed summary in parallel.
+  // The options endpoint may return no result for tickers without listed options —
+  // in that case we still return fundamentals with an empty expirations array.
+  // A direct quote fetch runs in parallel as a price/name fallback (e.g. for crypto).
+  const [data, summaryData, quoteData] = await Promise.all([
+    fetchYF(`/v7/finance/options/${ticker}`).catch(() => null),
     fetchYF(
       `/v10/finance/quoteSummary/${ticker}?modules=defaultKeyStatistics,financialData,incomeStatementHistory,balanceSheetHistory,cashflowStatementHistory,earningsHistory`,
     ).catch(() => null),
+    fetchYF(`/v7/finance/quote?symbols=${encodeURIComponent(ticker)}`).catch(() => null),
   ])
-  const result = data.optionChain.result[0]
-  const rawTimestamps = result.expirationDates || []
+  const result = data?.optionChain?.result?.[0] || null
+  const rawTimestamps = result?.expirationDates || []
   const expirations = rawTimestamps.map((ts) => ({
     date: new Date(ts * 1000).toISOString().slice(0, 10),
     timestamp: ts,
   }))
-  const quote = result.quote || {}
+  // Use quote from options endpoint; fall back to direct quote (covers crypto without options)
+  const fallbackQuote = quoteData?.quoteResponse?.result?.[0] || {}
+  const quote = result?.quote || fallbackQuote
 
   // Extract detailed stats from quoteSummary modules
   const summaryResult = summaryData?.quoteSummary?.result?.[0] || {}
@@ -382,7 +399,7 @@ async function handleOptions(ticker) {
 
   return jsonResp({
     ticker: quote.symbol || ticker,
-    price: quote.regularMarketPrice || 0,
+    price: quote.regularMarketPrice || rv(finData.currentPrice) || 0,
     expirations,
     fundamentals,
   })
@@ -606,6 +623,135 @@ async function handleCryptoChain(currency, expDateStr) {
 async function handleCryptoHistory(currency, days) {
   // Use Yahoo Finance for crypto price history (BTC-USD etc.)
   return handleHistory(`${currency}-USD`, days)
+}
+
+// ======================================================================
+// Route handlers — Deribit (crypto options fallback)
+// ======================================================================
+
+async function handleDeribitOptions(currency) {
+  const yfTicker = `${currency}-USD`
+
+  const [summaryItems, yfData] = await Promise.all([
+    fetchDeribit('get_book_summary_by_currency', { currency, kind: 'option' }),
+    fetchYF(`/v7/finance/options/${yfTicker}`)
+      .then((d) => d.optionChain?.result?.[0]?.quote || {})
+      .catch(() => ({})),
+  ])
+
+  const items = summaryItems || []
+  if (items.length === 0) throw new Error(`No Deribit options for ${currency}`)
+
+  let spot = 0
+  const expiryMap = new Map() // ISO date → unix timestamp
+
+  for (const item of items) {
+    // instrument_name format: "BTC-27DEC24-100000-C"
+    const parts = item.instrument_name.split('-')
+    if (parts.length < 4) continue
+
+    const expDate = parseBybitExpiry(parts[1]) // Same DDMMMYY format as Bybit
+    if (!expDate) continue
+
+    if (!expiryMap.has(expDate)) {
+      // Deribit options expire at 08:00 UTC on the delivery day
+      const ts = Math.floor(new Date(`${expDate}T08:00:00Z`).getTime() / 1000)
+      expiryMap.set(expDate, ts)
+    }
+
+    if (!spot && item.underlying_price > 0) spot = item.underlying_price
+  }
+
+  if (!spot) spot = yfData.regularMarketPrice || 0
+
+  const expirations = Array.from(expiryMap.entries())
+    .sort((a, b) => a[1] - b[1])
+    .map(([date, timestamp]) => ({ date, timestamp }))
+
+  const q = yfData
+  const fundamentals =
+    Object.keys(q).length > 0
+      ? {
+          name: q.shortName || q.longName || null,
+          longName: q.longName || null,
+          sector: null,
+          industry: null,
+          exchange: q.fullExchangeName || q.exchange || null,
+          currency: q.currency || null,
+          quoteType: q.quoteType || null,
+          marketCap: q.marketCap ?? null,
+          fiftyTwoWeekLow: q.fiftyTwoWeekLow ?? null,
+          fiftyTwoWeekHigh: q.fiftyTwoWeekHigh ?? null,
+          fiftyDayAverage: q.fiftyDayAverage ?? null,
+          twoHundredDayAverage: q.twoHundredDayAverage ?? null,
+          avgVolume: q.averageDailyVolume3Month ?? null,
+          avgVolume10d: q.averageDailyVolume10Day ?? null,
+        }
+      : null
+
+  return jsonResp({
+    ticker: yfTicker,
+    price: spot,
+    expirations,
+    fundamentals,
+  })
+}
+
+async function handleDeribitChain(currency, expDateStr) {
+  const summaryItems = await fetchDeribit('get_book_summary_by_currency', {
+    currency,
+    kind: 'option',
+  })
+
+  const allItems = summaryItems || []
+  let spot = 0
+  for (const item of allItems) {
+    if (!spot && item.underlying_price > 0) {
+      spot = item.underlying_price
+      break
+    }
+  }
+
+  const calls = []
+  const puts = []
+
+  for (const item of allItems) {
+    // instrument_name: "BTC-27DEC24-100000-C"
+    const parts = item.instrument_name.split('-')
+    if (parts.length < 4) continue
+
+    const expDate = parseBybitExpiry(parts[1])
+    if (expDate !== expDateStr) continue
+
+    const strike = parseFloat(parts[2])
+    const optType = parts[3].toUpperCase() // "C" or "P"
+
+    // Deribit prices are in coin units — multiply by spot to get USD
+    const bid = (parseFloat(item.bid_price) || 0) * spot
+    const ask = (parseFloat(item.ask_price) || 0) * spot
+    const lastPrice = (parseFloat(item.last) || 0) * spot
+    const mid = bid > 0 && ask > 0 ? (bid + ask) / 2 : lastPrice
+    const iv = (parseFloat(item.mark_iv) || 0) / 100 // Deribit gives % (e.g. 60.5 → 0.605)
+    const oi = parseFloat(item.open_interest) || 0
+    const vol = parseFloat(item.volume) || 0
+    const itm = (optType === 'C' && strike < spot) || (optType === 'P' && strike > spot)
+
+    const row = { strike, bid, ask, lastPrice, mid, impliedVolatility: iv, volume: vol, openInterest: oi, inTheMoney: itm }
+
+    if (optType === 'C') calls.push(row)
+    else if (optType === 'P') puts.push(row)
+  }
+
+  calls.sort((a, b) => a.strike - b.strike)
+  puts.sort((a, b) => a.strike - b.strike)
+
+  return jsonResp({
+    ticker: `${currency}-USD`,
+    price: spot,
+    expiry: expDateStr,
+    calls,
+    puts,
+  })
 }
 
 // ======================================================================
@@ -872,7 +1018,17 @@ export default {
               /* Bybit failed, fall through */
             }
           }
-          // Fall back to Yahoo Finance (e.g. BNB, ADA, etc.)
+          // Try Deribit as second source (BTC, ETH, SOL)
+          if (isDeribitSupported(norm)) {
+            try {
+              const resp = await handleDeribitOptions(norm)
+              const body = await resp.clone().json()
+              if (body.expirations && body.expirations.length > 0) return resp
+            } catch {
+              /* Deribit failed, fall through */
+            }
+          }
+          // Fall back to Yahoo Finance (fundamentals + spot price; no options for most crypto)
           return await handleOptions(`${norm}-USD`)
         }
         return await handleOptions(norm)
@@ -887,7 +1043,7 @@ export default {
         const norm = normalizeTicker(ticker)
         if (isCrypto(ticker)) {
           if (/^\d+$/.test(exp)) {
-            // Unix timestamp — convert to ISO date, try Bybit, fall back to YF
+            // Unix timestamp — convert to ISO date, try Bybit → Deribit → YF
             const expDate = new Date(Number(exp) * 1000).toISOString().slice(0, 10)
             if (isBybitSupported(norm)) {
               try {
@@ -899,9 +1055,32 @@ export default {
                 /* fall through */
               }
             }
+            if (isDeribitSupported(norm)) {
+              try {
+                const resp = await handleDeribitChain(norm, expDate)
+                const body = await resp.clone().json()
+                if ((body.calls && body.calls.length > 0) || (body.puts && body.puts.length > 0))
+                  return resp
+              } catch {
+                /* fall through */
+              }
+            }
             return await handleChain(`${norm}-USD`, exp)
           }
-          // Date string from Bybit path
+          // Date string — try Bybit first, then Deribit
+          if (isBybitSupported(norm)) {
+            try {
+              const resp = await handleCryptoChain(norm, exp)
+              const body = await resp.clone().json()
+              if ((body.calls && body.calls.length > 0) || (body.puts && body.puts.length > 0))
+                return resp
+            } catch {
+              /* fall through */
+            }
+          }
+          if (isDeribitSupported(norm)) {
+            return await handleDeribitChain(norm, exp)
+          }
           return await handleCryptoChain(norm, exp)
         }
         return await handleChain(norm, exp)

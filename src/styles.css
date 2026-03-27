@@ -1847,6 +1847,7 @@ hr {
   .terminal-tabs-wrapper {
     position: relative;
     width: 100%;
+    touch-action: manipulation;
   }
 
   .terminal-tabs {
@@ -1857,6 +1858,7 @@ hr {
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
     padding-right: 96px;
+    touch-action: manipulation;
   }
 
   .terminal-tabs::-webkit-scrollbar {

@@ -1858,6 +1858,7 @@ hr {
 }
 
 .compare-ticker-link {
+  margin-top: auto;
   color: var(--accent);
   text-decoration: none;
   font-weight: 500;
@@ -1882,6 +1883,8 @@ hr {
 }
 
 .compare-fighter {
+  display: flex;
+  flex-direction: column;
   border: 1.2px solid var(--border);
   border-radius: 6px;
   background:

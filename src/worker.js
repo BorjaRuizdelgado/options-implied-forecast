@@ -1216,13 +1216,13 @@ function buildCrawlerHtml(url, ticker, quote) {
   const qName = quote?.name || ticker
   const qPrice = quote?.price != null ? `$${quote.price.toFixed(2)}` : null
   const title = ticker
-    ? `${ticker} Options & Stock Analysis — Borja Ruizdelgado Investing Tools`
+    ? `${qName} (${ticker}) Analysis — Borja Ruizdelgado`
     : 'Borja Ruizdelgado — Free Options & Stock Analysis Tools'
   const description = ticker
     ? qPrice
-      ? `${qName} (${ticker}) trading at ${qPrice}. Free options-implied valuation analysis by Borja Ruizdelgado: price forecast, probability distribution, expected move, IV smile, fundamentals, and support/resistance levels.`
-      : `Free ${ticker} analysis by Borja Ruizdelgado: options-implied price forecast, probability distribution, expected move, IV smile, fundamentals (P/E, EBITDA, margins), analyst targets, and support/resistance levels.`
-    : 'Free investing tools by Borja Ruizdelgado: options-implied price forecasts, probability distributions, IV smile, stock fundamentals, and crypto options analysis.'
+      ? `${qName} at ${qPrice} — valuation, quality, risk, options forecasting, and fundamentals. Free analysis by Borja Ruizdelgado.`
+      : `${qName} — valuation, quality, risk, options forecasting, and fundamentals. Free analysis by Borja Ruizdelgado.`
+    : 'Free investing tools by Borja Ruizdelgado: options-implied price forecasts, stock fundamentals, valuation scoring, and crypto analysis.'
   const canonical = ticker ? `${origin}/${ticker}` : `${origin}/`
 
   return `<!DOCTYPE html>
@@ -1844,8 +1844,8 @@ export default {
         // (which fetches as a normal user) sees the correct values for each ticker page.
         if (maybeTicker && !reserved.has(maybeTicker)) {
           const canonical = `${url.origin}/${maybeTicker}`
-          const title = `${maybeTicker} Options & Stock Analysis — Borja Ruizdelgado Investing Tools`
-          const desc = `Free ${maybeTicker} analysis: options-implied price forecast, probability distribution, expected move, IV smile, fundamentals (P/E, EBITDA, margins), analyst targets, and support/resistance levels.`
+          const title = `${maybeTicker} Analysis — Borja Ruizdelgado`
+          const desc = `${maybeTicker} — valuation, quality, risk, options forecasting, and fundamentals. Free analysis by Borja Ruizdelgado.`
           let html = await indexRes.text()
           html = html
             .replace(

@@ -11,7 +11,10 @@ export default function TickerSummaryCard({
   action,
 }) {
   const positive = !Number.isFinite(changePct) || changePct >= 0
-  const className = `ticker-summary-card${variant === 'watchlist' ? ' ticker-summary-card--watchlist' : ''}`
+  const className =
+    variant === 'watchlist'
+      ? 'watchlist-card watchlist-card--saved'
+      : `ticker-summary-card${variant === 'watchlist' ? ' ticker-summary-card--watchlist' : ''}`
 
   return (
     <div className={className}>

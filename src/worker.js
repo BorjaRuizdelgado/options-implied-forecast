@@ -1059,6 +1059,7 @@ async function computeTickerSentiment(yfTicker, displayTicker, scope) {
     name: 'Ticker Sentiment',
     score: composite,
     classification,
+    summary: `${classification} (${composite})`,
     asOf: new Date().toISOString(),
     components,
     attribution: null,

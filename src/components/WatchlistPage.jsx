@@ -52,12 +52,13 @@ export default function WatchlistPage({ watchlist, onAnalyse }) {
       )}
 
       {!loading && watchlist.tickers.length > 0 && (
-        <div className="trending-grid">
+        <div className="watchlist-grid watchlist-grid--saved">
           {watchlist.tickers.map((ticker) => {
             const q = quotes.find((x) => x.ticker === ticker || x.symbol === ticker)
             return (
               <TickerSummaryCard
                 key={ticker}
+                variant="watchlist"
                 symbol={ticker}
                 name={q?.name}
                 price={q?.price}

@@ -1402,7 +1402,13 @@ hr {
   font-family: inherit;
   font-size: inherit;
   color: inherit;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  /* ensure cards across rows share a consistent minimum height */
+  min-height: 8.5rem;
 }
+
 
 .score-card--clickable {
   cursor: pointer;

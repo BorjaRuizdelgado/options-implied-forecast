@@ -15,10 +15,10 @@ export default function TickerSummaryCard({
 
   return (
     <div className={className}>
-      {action ? <div className="ticker-summary-card__action">{action}</div> : null}
       <button className="trending-card ticker-summary-card__button" onClick={() => onClick(symbol)} type="button">
         <div className="ticker-summary-card__header">
           <span className="trending-card-symbol">{symbol}</span>
+          {action ? <span className="ticker-summary-card__action">{action}</span> : null}
         </div>
         <span className="trending-card-name">{name || symbol}</span>
         {Number.isFinite(price) ? (

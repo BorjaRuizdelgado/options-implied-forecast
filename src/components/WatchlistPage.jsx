@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import TickerSummaryCard from './TickerSummaryCard.jsx'
 
 export default function WatchlistPage({ watchlist, onAnalyse }) {
   const [quotes, setQuotes] = useState([])
@@ -32,7 +33,7 @@ export default function WatchlistPage({ watchlist, onAnalyse }) {
   }, [watchlist.tickers])
 
   return (
-    <div>
+    <div style={{ textAlign: 'center' }}>
       <h1>Watchlist</h1>
       <p className="subtitle">Your saved tickers. Click to analyse.</p>
 
@@ -51,17 +52,18 @@ export default function WatchlistPage({ watchlist, onAnalyse }) {
       )}
 
       {!loading && watchlist.tickers.length > 0 && (
-        <div className="watchlist-grid watchlist-grid--saved">
+        <div className="trending-grid">
           {watchlist.tickers.map((ticker) => {
             const q = quotes.find((x) => x.ticker === ticker || x.symbol === ticker)
             return (
-              <div
+              <TickerSummaryCard
                 key={ticker}
-                className="terminal-card watchlist-card watchlist-card--saved"
-                onClick={() => onAnalyse(ticker)}
-              >
-                <div className="watchlist-card__header">
-                  <div className="terminal-eyebrow watchlist-card__ticker">{ticker}</div>
+                symbol={ticker}
+                name={q?.name}
+                price={q?.price}
+                changePct={q?.changePct}
+                onClick={onAnalyse}
+                action={
                   <button
                     className="watchlist-card__remove"
                     onClick={(e) => {
@@ -73,22 +75,8 @@ export default function WatchlistPage({ watchlist, onAnalyse }) {
                   >
                     &times;
                   </button>
-                </div>
-                {q ? (
-                  <>
-                    <div className="trending-card-name watchlist-card__name">{q.name || ticker}</div>
-                    <div className="trending-card-price watchlist-card__price">${q.price?.toFixed(2)}</div>
-                    <div
-                      className={`trending-card-change watchlist-card__change ${q.changePct >= 0 ? 'positive' : 'negative'}`}
-                    >
-                      {q.changePct >= 0 ? '+' : ''}
-                      {q.changePct?.toFixed(2)}%
-                    </div>
-                  </>
-                ) : (
-                  <div className="terminal-caption watchlist-card__fallback">Quote unavailable</div>
-                )}
-              </div>
+                }
+              />
             )
           })}
         </div>

@@ -1,21 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { fetchTrending } from '../lib/fetcher.js'
-import { fmt } from '../lib/format.js'
-
-function TrendingCard({ symbol, name, price, changePct, onClick }) {
-  const positive = changePct >= 0
-  return (
-    <button className="trending-card" onClick={() => onClick(symbol)}>
-      <span className="trending-card-symbol">{symbol}</span>
-      <span className="trending-card-name">{name}</span>
-      <span className="trending-card-price">{fmt(price)}</span>
-      <span className={`trending-card-change ${positive ? 'positive' : 'negative'}`}>
-        {positive ? '+' : ''}
-        {changePct.toFixed(2)}%
-      </span>
-    </button>
-  )
-}
+import TickerSummaryCard from './TickerSummaryCard.jsx'
 
 const INITIAL_SHOW = 4
 
@@ -73,7 +58,7 @@ export default function TrendingTickers({ onTickerClick }) {
           <h3 className="trending-section-title">Trending Stocks</h3>
           <div className="trending-grid">
             {visibleStocks.map((s) => (
-              <TrendingCard key={s.symbol} onClick={onTickerClick} {...s} />
+              <TickerSummaryCard key={s.symbol} onClick={onTickerClick} {...s} />
             ))}
           </div>
           {stocks.length > INITIAL_SHOW && !showAllStocks && (
@@ -88,7 +73,7 @@ export default function TrendingTickers({ onTickerClick }) {
           <h3 className="trending-section-title">Top Crypto</h3>
           <div className="trending-grid">
             {visibleCrypto.map((c) => (
-              <TrendingCard key={c.symbol} onClick={onTickerClick} {...c} />
+              <TickerSummaryCard key={c.symbol} onClick={onTickerClick} {...c} />
             ))}
           </div>
           {crypto.length > INITIAL_SHOW && !showAllCrypto && (

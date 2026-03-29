@@ -171,22 +171,29 @@ function buildSankey(cf) {
 }
 
 export default function CashSankeyChart({ ticker }) {
-  const [cf, setCf] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [request, setRequest] = useState({ ticker: null, cf: null })
 
   useEffect(() => {
     if (!ticker) return
-    setLoading(true)
-    setCf(null)
+    let cancelled = false
+
     fetch(`/api/cashflow?ticker=${encodeURIComponent(ticker)}`)
       .then((r) => r.json())
       .then((data) => {
-        if (data.error) setCf(null)
-        else setCf(data)
+        if (cancelled) return
+        setRequest({ ticker, cf: data.error ? null : data })
       })
-      .catch(() => setCf(null))
-      .finally(() => setLoading(false))
+      .catch(() => {
+        if (!cancelled) setRequest({ ticker, cf: null })
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [ticker])
+
+  const loading = Boolean(ticker) && request.ticker !== ticker
+  const cf = request.ticker === ticker ? request.cf : null
 
   const { data, layout } = useMemo(() => {
     if (!cf || cf.operatingCashflow == null) return { data: null, layout: null }

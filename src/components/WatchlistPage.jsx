@@ -51,17 +51,17 @@ export default function WatchlistPage({ watchlist, onAnalyse }) {
       )}
 
       {!loading && watchlist.tickers.length > 0 && (
-        <div className="watchlist-grid">
+        <div className="watchlist-grid watchlist-grid--saved">
           {watchlist.tickers.map((ticker) => {
             const q = quotes.find((x) => x.ticker === ticker || x.symbol === ticker)
             return (
               <div
                 key={ticker}
-                className="terminal-card watchlist-card"
+                className="terminal-card watchlist-card watchlist-card--saved"
                 onClick={() => onAnalyse(ticker)}
               >
                 <div className="watchlist-card__header">
-                  <div className="terminal-eyebrow">{ticker}</div>
+                  <div className="terminal-eyebrow watchlist-card__ticker">{ticker}</div>
                   <button
                     className="watchlist-card__remove"
                     onClick={(e) => {
@@ -69,25 +69,24 @@ export default function WatchlistPage({ watchlist, onAnalyse }) {
                       watchlist.remove(ticker)
                     }}
                     title="Remove from watchlist"
+                    type="button"
                   >
                     &times;
                   </button>
                 </div>
                 {q ? (
                   <>
-                    <div className="trending-card-name">{q.name || ticker}</div>
-                    <div className="trending-card-price">${q.price?.toFixed(2)}</div>
+                    <div className="trending-card-name watchlist-card__name">{q.name || ticker}</div>
+                    <div className="trending-card-price watchlist-card__price">${q.price?.toFixed(2)}</div>
                     <div
-                      className={`trending-card-change ${q.changePct >= 0 ? 'positive' : 'negative'}`}
+                      className={`trending-card-change watchlist-card__change ${q.changePct >= 0 ? 'positive' : 'negative'}`}
                     >
                       {q.changePct >= 0 ? '+' : ''}
                       {q.changePct?.toFixed(2)}%
                     </div>
                   </>
                 ) : (
-                  <div className="terminal-caption" style={{ marginTop: '0.5rem' }}>
-                    {loading ? 'Loading...' : 'Quote unavailable'}
-                  </div>
+                  <div className="terminal-caption watchlist-card__fallback">Quote unavailable</div>
                 )}
               </div>
             )

@@ -1,3 +1,4 @@
+import React from 'react'
 import { fmt, fmtCompact, fmtPct } from '../lib/format.js'
 import ScoreCard from './ScoreCard.jsx'
 import ReasonList from './ReasonList.jsx'
@@ -102,6 +103,38 @@ function availableScoreCards(research) {
   ].filter(Boolean)
 }
 
+function buildScoreExplanation(label, bucket, fallbackDetail) {
+  if (!bucket?.hasData && bucket?.score == null) return null
+  const primaryReason = bucket?.reasons?.[0]
+  return {
+    tone: primaryReason?.tone || 'neutral',
+    title: `${label} Score`,
+    detail: primaryReason?.detail || fallbackDetail,
+  }
+}
+
+export function buildOverviewScoreReasons(research) {
+  const reasons = [
+    research?.opportunity?.hasData
+      ? {
+          tone: 'neutral',
+          title: 'Opportunity Score',
+          detail:
+            'Opportunity blends valuation, quality, risk, options posture, and analyst upside when those inputs are available.',
+        }
+      : null,
+    buildScoreExplanation('Valuation', research?.valuation, METRIC_TIPS.valuationScore),
+    buildScoreExplanation('Quality', research?.quality, METRIC_TIPS.qualityScore),
+    buildScoreExplanation('Risk', research?.risk, METRIC_TIPS.riskScore),
+    buildScoreExplanation('Technicals', research?.technicals, METRIC_TIPS.technicalsScore),
+    research?.options?.score != null
+      ? buildScoreExplanation('Options', research?.options, METRIC_TIPS.optionsScore)
+      : null,
+  ]
+
+  return reasons.filter(Boolean)
+}
+
 export default function OverviewPage({
   ticker,
   spot,
@@ -149,12 +182,7 @@ export default function OverviewPage({
         }
       : null,
   ].filter(Boolean)
-  const reasonPool = [
-    ...(research?.valuation?.hasData ? (research?.valuation?.reasons || []).slice(0, 2) : []),
-    ...(research?.quality?.hasData ? (research?.quality?.reasons || []).slice(0, 1) : []),
-    ...(research?.risk?.hasData ? (research?.risk?.reasons || []).slice(0, 1) : []),
-    ...(research?.options?.score != null ? (research?.options?.reasons || []).slice(0, 1) : []),
-  ]
+  const reasonPool = buildOverviewScoreReasons(research)
 
   return (
     <>
@@ -199,6 +227,7 @@ export default function OverviewPage({
                   score={card.value}
                   tone={card._origScore != null ? tone(card._origScore) : tone(card.value)}
                   detail={card.detail}
+                  tooltip={card.tooltip}
                   onClick={tabId && onTabChange ? () => onTabChange(tabId) : undefined}
                 />
               )

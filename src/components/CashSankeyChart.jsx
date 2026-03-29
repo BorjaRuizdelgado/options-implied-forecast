@@ -232,7 +232,7 @@ export default function CashSankeyChart({ ticker }) {
       layout: {
         autosize: true,
         height,
-        margin: { l: 10, r: 220, t: 16, b: 10 },
+        margin: { l: 0, r: 0, t: 16, b: 10 },
         paper_bgcolor: c.bg,
         plot_bgcolor: c.bg,
         hoverlabel: {
@@ -276,13 +276,15 @@ export default function CashSankeyChart({ ticker }) {
       <div className="terminal-eyebrow">
         Cash Flow Breakdown{period ? ` — FY ${period.slice(0, 4)}` : ''}
       </div>
-      <Plot
-        data={data}
-        layout={layout}
-        config={{ displayModeBar: false, responsive: true }}
-        style={{ width: '100%' }}
-        useResizeHandler
-      />
+      <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <Plot
+          data={data}
+          layout={layout}
+          config={{ displayModeBar: false, responsive: true }}
+          style={{ width: '100%', minWidth: 900 }}
+          useResizeHandler
+        />
+      </div>
     </div>
   )
 }

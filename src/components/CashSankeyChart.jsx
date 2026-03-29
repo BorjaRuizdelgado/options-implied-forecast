@@ -232,7 +232,7 @@ export default function CashSankeyChart({ ticker }) {
       layout: {
         autosize: true,
         height,
-        margin: { l: 0, r: 0, t: 16, b: 10 },
+        margin: { l: 0, r: 10, t: 16, b: 10 },
         paper_bgcolor: c.bg,
         plot_bgcolor: c.bg,
         hoverlabel: {
@@ -281,7 +281,7 @@ export default function CashSankeyChart({ ticker }) {
           data={data}
           layout={layout}
           config={{ displayModeBar: false, responsive: true }}
-          style={{ width: '100%', minWidth: 900 }}
+          style={{ width: '100%', minWidth: 1200 }}
           useResizeHandler
         />
       </div>

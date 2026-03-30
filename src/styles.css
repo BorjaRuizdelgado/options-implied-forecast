@@ -1549,7 +1549,7 @@ hr {
   max-width: 95%;
   text-align: justify;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1583,6 +1583,7 @@ hr {
   justify-content: space-between;
   gap: 1.25rem;
   flex-wrap: wrap;
+  max-width: 95%;
 }
 
 .overview-watchlist-btn {

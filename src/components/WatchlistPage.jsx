@@ -35,7 +35,6 @@ export default function WatchlistPage({ watchlist, onAnalyse }) {
   return (
     <div style={{ textAlign: 'center' }}>
       <h1>Watchlist</h1>
-      <p className="subtitle">Your saved tickers. Click to analyse.</p>
 
       {watchlist.tickers.length === 0 && (
         <div className="watchlist-empty">

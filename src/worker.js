@@ -1282,25 +1282,25 @@ async function handleScreener() {
   }
 
   // ── Strategy A: Yahoo screener POST API (equities + ETFs) ──────────
-  let screenerWorked = false
   try {
-    // Equities: up to 750 stocks (3 pages × 250), market cap > $300 M
-    for (let offset = 0; offset < 750; offset += 250) {
+    // Equities: up to 2500 stocks (10 pages × 250), market cap > $300 M
+    for (let offset = 0; offset < 2500; offset += 250) {
       const data = await fetchYFScreener(screenerBody('EQUITY', 300_000_000, offset))
       const quotes = data?.finance?.result?.[0]?.quotes || []
       for (const q of quotes) push(q)
       if (quotes.length < 250) break
     }
-    // ETFs: top 250 by AUM (> $500 M)
-    const etfData = await fetchYFScreener(screenerBody('ETF', 500_000_000, 0))
-    for (const q of (etfData?.finance?.result?.[0]?.quotes || [])) push(q)
-    screenerWorked = allStocks.length > 50
-  } catch {
-    screenerWorked = false
-  }
+    // ETFs: up to 500 by AUM (> $500 M)
+    for (let offset = 0; offset < 500; offset += 250) {
+      const data = await fetchYFScreener(screenerBody('ETF', 500_000_000, offset))
+      const quotes = data?.finance?.result?.[0]?.quotes || []
+      for (const q of quotes) push(q)
+      if (quotes.length < 250) break
+    }
+  } catch { /* continue to next strategies */ }
 
-  // ── Strategy B: predefined screener GET endpoints ────────────────────
-  if (!screenerWorked) {
+  // ── Strategy B: predefined screener GET endpoints (always merge) ────
+  try {
     const predefined = [
       'most_actives', 'day_gainers', 'day_losers',
       'undervalued_large_caps', 'growth_technology_stocks',
@@ -1318,11 +1318,11 @@ async function handleScreener() {
       )
       for (const quotes of results) for (const q of quotes) push(q)
     }
-  }
+  } catch { /* continue */ }
 
-  // ── Strategy C: batch quote fallback with well-known tickers ────────
-  if (allStocks.length < 50) {
-    const fallbackTickers = [
+  // ── Strategy C: batch quote for well-known tickers (always merge) ──
+  {
+    const coreTickers = [
       'AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','BRK-B','AVGO','JPM',
       'LLY','V','UNH','MA','XOM','COST','HD','PG','JNJ','ABBV',
       'NFLX','CRM','BAC','AMD','ORCL','ADBE','KO','PEP','TMO','MRK',
@@ -1339,13 +1339,22 @@ async function handleScreener() {
       'CI','ELV','MCK','CVS','MMC','AIG','TRV','MET','PRU','PGR',
       'NVO','SAP','TM','SONY','MELI','BABA','NIO','NU','AZN','GSK',
       'FCX','NEM','APD','SHW','NUE','CL','KMB','MNST','GIS','HSY',
+      'ANET','FTNT','KLAC','SMCI','ON','MCHP','SNPS','CDNS','ANSS','SEDG',
+      'ENPH','FSLR','CEG','VST','CARR','TT','IR','EMR','ROK','DOV',
+      'ETN','WM','RSG','ECL','ITW','ODFL','FAST','PAYX','ADP','CPRT',
+      'ORLY','AZO','POOL','IDXX','DXCM','ALGN','PODD','HOLX','TECH','WAT',
+      'MSCI','ICE','MCO','SPGI','FIS','FISV','GPN','WEX','PAYC','PCTY',
+      'DHR','BMY','BIIB','MRNA','ILMN','ZTS','VEEV','CNC','HCA','GEHC',
       'SPY','QQQ','IWM','DIA','VOO','VTI','ARKK','XLF','XLE','XLK',
       'GLD','SLV','TLT','HYG','SOXX','SMH','XBI','XLV','XLI','XLP',
+      'KWEB','EEM','VWO','EFA','VEA','IEMG','VNQ','VNQI','LQD','BND',
     ]
+    // Only fetch tickers we haven't seen yet
+    const missing = coreTickers.filter((t) => !seen.has(t))
     const CHUNK = 50
     const chunks = []
-    for (let i = 0; i < fallbackTickers.length; i += CHUNK) {
-      chunks.push(fallbackTickers.slice(i, i + CHUNK))
+    for (let i = 0; i < missing.length; i += CHUNK) {
+      chunks.push(missing.slice(i, i + CHUNK))
     }
     for (let w = 0; w < chunks.length; w += 3) {
       const wave = chunks.slice(w, w + 3)

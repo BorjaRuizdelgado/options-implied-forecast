@@ -84,11 +84,11 @@ export default function EarningsCalendar({ fundamentals }) {
                 barmode: 'group',
                 autosize: true,
                 height: 230,
-                margin: { l: 40, r: 12, t: 36, b: 40 },
+                margin: { l: 40, r: 12, t: 50, b: 40 },
                 paper_bgcolor: 'transparent',
                 plot_bgcolor: 'transparent',
                 font: { color: c.textLight, family: 'DM Sans, sans-serif', size: 12 },
-                legend: { orientation: 'h', y: 1.12, x: 0, font: { color: c.textLight } },
+                legend: { orientation: 'h', y: 1.22, yanchor: 'bottom', x: 0, font: { color: c.textLight } },
                 xaxis: { fixedrange: true, tickfont: { color: c.textMuted } },
                 yaxis: {
                   fixedrange: true,

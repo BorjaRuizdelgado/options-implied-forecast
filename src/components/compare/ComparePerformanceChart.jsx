@@ -77,7 +77,7 @@ export default function ComparePerformanceChart({ left, right, range, onRangeCha
             paper_bgcolor: 'transparent',
             plot_bgcolor: 'transparent',
             font: { color: colors.textLight, family: 'DM Sans, sans-serif', size: 12 },
-            legend: { orientation: 'h', y: 1.12, x: 0, font: { color: colors.textLight } },
+            legend: { orientation: 'h', y: 1.22, yanchor: 'bottom', x: 0, font: { color: colors.textLight } },
             xaxis: { fixedrange: true, gridcolor: colors.borderLight, tickfont: { color: colors.textMuted } },
             yaxis: {
               title: 'Indexed return',

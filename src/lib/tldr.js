@@ -7,7 +7,6 @@ export function valuationTldr(research, fundamentals) {
   const v = research?.valuation
   if (!v?.hasData) return null
   const score = v.score
-  const label = v.label
   const ticker = fundamentals?.symbol || ''
 
   if (score >= 70) {

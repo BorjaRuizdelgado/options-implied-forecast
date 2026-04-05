@@ -16,7 +16,7 @@ function ScreenerCard({ stock, onClick, watchlist }) {
   const inWatchlist = watchlist?.has(stock.ticker)
 
   return (
-    <button className="screener-card" onClick={() => onClick(stock.ticker)}>
+    <div className="screener-card" role="button" tabIndex={0} onClick={() => onClick(stock.ticker)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(stock.ticker) } }}>
       <div className="screener-card__head">
         <div className="screener-card__symbol-row">
           <span className="screener-card__symbol">{stock.ticker}</span>
@@ -75,7 +75,7 @@ function ScreenerCard({ stock, onClick, watchlist }) {
           </div>
         </div>
       )}
-    </button>
+    </div>
   )
 }
 

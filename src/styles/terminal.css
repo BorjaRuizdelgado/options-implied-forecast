@@ -330,18 +330,7 @@
   font-size: 1.6rem;
   font-weight: 600;
   color: var(--accent);
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.35rem;
 }
-
-.score-card-tone-icon {
-  font-size: 0.65rem;
-}
-
-.score-card-tone-icon--positive { color: var(--green); }
-.score-card-tone-icon--negative { color: var(--red); }
-.score-card-tone-icon--neutral { color: var(--text-muted); }
 
 .score-bar {
   height: 8px;

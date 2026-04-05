@@ -8,6 +8,7 @@ import RiskPage from './components/RiskPage.jsx'
 import TrendingTickers from './components/TrendingTickers.jsx'
 import SupportVault from './components/SupportVault.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import TldrBanner from './components/TldrBanner.jsx'
 
 // Heavy pages — deferred until first visit so Plotly stays out of the initial bundle
 const TechnicalsPage = lazy(() => import('./components/TechnicalsPage.jsx'))
@@ -39,6 +40,7 @@ import {
 import { OverviewSkeleton, ChartSkeleton } from './components/SkeletonLayouts.jsx'
 import ShortcutHelp from './components/ShortcutHelp.jsx'
 import { prefetchLazyChunks } from './lib/prefetch.js'
+import { tabTldr } from './lib/tldr.js'
 
 const TABS = [
   { id: 'overview', label: 'Overview', caption: 'Decision snapshot' },
@@ -91,6 +93,18 @@ export default function App() {
   const visibleTabs = useMemo(
     () => TABS.filter((tab) => research?.availability?.[tab.id] ?? tab.id === 'overview'),
     [research],
+  )
+
+  const activeTabTldr = useMemo(
+    () =>
+      tabTldr({
+        activeTab,
+        research,
+        fundamentals,
+        analysis,
+        ticker,
+      }),
+    [activeTab, research, fundamentals, analysis, ticker],
   )
 
   const handleThemeToggle = useCallback(() => {
@@ -349,15 +363,7 @@ export default function App() {
             </div>
 
             <div className="tab-content" key={theme}>
-              {ticker && activeTab && (
-                <nav className="breadcrumb" aria-label="Breadcrumb">
-                  <span className="breadcrumb__ticker">{ticker}</span>
-                  <span className="breadcrumb__sep" aria-hidden="true">›</span>
-                  <span className="breadcrumb__tab">
-                    {visibleTabs.find((t) => t.id === activeTab)?.label || activeTab}
-                  </span>
-                </nav>
-              )}
+              {activeTabTldr && <TldrBanner text={activeTabTldr.text} tone={activeTabTldr.tone} />}
               {activeTab === 'overview' && (
                 <ErrorBoundary name="OverviewPage">
                   <OverviewPage

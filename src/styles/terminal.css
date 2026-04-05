@@ -83,31 +83,6 @@
   margin: 0 auto;
 }
 
-/* Breadcrumb — shows TICKER › Tab so users always know where they are */
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  margin-bottom: 1.25rem;
-  letter-spacing: 0.02em;
-}
-
-.breadcrumb__ticker {
-  font-weight: 600;
-  color: var(--accent);
-  text-transform: uppercase;
-}
-
-.breadcrumb__sep {
-  color: var(--border);
-}
-
-.breadcrumb__tab {
-  color: var(--text-light);
-}
-
 .terminal-hero {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);

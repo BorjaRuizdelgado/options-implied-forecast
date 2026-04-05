@@ -129,6 +129,10 @@
     max-width: none;
   }
 
+  .compare-form__search {
+    width: 100%;
+  }
+
   .compare-form__btn {
     width: 100%;
   }
@@ -136,6 +140,10 @@
   .compare-battle,
   .compare-relationship-grid {
     grid-template-columns: 1fr;
+  }
+
+  .compare-battle__center {
+    order: -1;
   }
 
   .compare-section-heading {
@@ -240,6 +248,18 @@
     font-size: 0.95rem;
     outline: none;
     min-width: 0;
+  }
+
+  .app-header__menu-search .ticker-search input[type='text'] {
+    border-right: none;
+    background: var(--bg-alt);
+    padding: 0.65rem 0.85rem;
+    font-size: 0.95rem;
+  }
+
+  .app-header__menu-search .ticker-search__dropdown {
+    position: absolute;
+    z-index: 600;
   }
 
   .app-header__menu-search .app-header__search-btn {

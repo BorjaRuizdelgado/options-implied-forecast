@@ -115,6 +115,40 @@
   text-align: center;
 }
 
+.compare-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.compare-suggestion {
+  padding: 0.4rem 1rem;
+  background: none;
+  border: 1.2px solid var(--border);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s var(--ease);
+}
+
+.compare-suggestion:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.compare-form__search {
+  width: 200px;
+}
+
+.compare-form__search input[type='text'] {
+  border-right: 1.2px solid var(--border);
+  text-align: center;
+}
+
 .compare-battle {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr) minmax(0, 1fr);

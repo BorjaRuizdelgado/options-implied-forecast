@@ -70,16 +70,16 @@ export async function handleScreener() {
 
   // ── Strategy A: Yahoo screener POST API (equities + ETFs) ──────────
   try {
-    // Equities: up to 2500 stocks (10 pages × 250), market cap > $300 M
-    for (let offset = 0; offset < 2500; offset += 250) {
-      const data = await fetchYFScreener(screenerBody('EQUITY', 300_000_000, offset))
+    // Equities: up to 5000 stocks (20 pages × 250), market cap > $100 M
+    for (let offset = 0; offset < 5000; offset += 250) {
+      const data = await fetchYFScreener(screenerBody('EQUITY', 100_000_000, offset))
       const quotes = data?.finance?.result?.[0]?.quotes || []
       for (const q of quotes) push(q)
       if (quotes.length < 250) break
     }
-    // ETFs: up to 500 by AUM (> $500 M)
-    for (let offset = 0; offset < 500; offset += 250) {
-      const data = await fetchYFScreener(screenerBody('ETF', 500_000_000, offset))
+    // ETFs: up to 750 by AUM (> $100 M)
+    for (let offset = 0; offset < 750; offset += 250) {
+      const data = await fetchYFScreener(screenerBody('ETF', 100_000_000, offset))
       const quotes = data?.finance?.result?.[0]?.quotes || []
       for (const q of quotes) push(q)
       if (quotes.length < 250) break
@@ -93,9 +93,10 @@ export async function handleScreener() {
       'undervalued_large_caps', 'growth_technology_stocks',
       'undervalued_growth_stocks', 'small_cap_gainers',
       'aggressive_small_caps',
+      'most_shorted_stocks', 'portfolio_anchors',
     ]
-    for (let i = 0; i < predefined.length; i += 3) {
-      const batch = predefined.slice(i, i + 3)
+    for (let i = 0; i < predefined.length; i += 4) {
+      const batch = predefined.slice(i, i + 4)
       const results = await Promise.all(
         batch.map((name) =>
           fetchYF(`/v1/finance/screener/predefined/${name}?count=250`)
@@ -110,7 +111,8 @@ export async function handleScreener() {
   // ── Strategy C: batch quote for well-known tickers (always merge) ──
   {
     const coreTickers = [
-      'AAPL','MSFT','NVDA','AMZN','GOOGL','META','TSLA','BRK-B','AVGO','JPM',
+      // Mega / Large Cap Tech
+      'AAPL','MSFT','NVDA','AMZN','GOOGL','GOOG','META','TSLA','BRK-B','AVGO','JPM',
       'LLY','V','UNH','MA','XOM','COST','HD','PG','JNJ','ABBV',
       'NFLX','CRM','BAC','AMD','ORCL','ADBE','KO','PEP','TMO','MRK',
       'ACN','CSCO','WMT','ABT','LIN','PM','MCD','DIS','NOW','IBM',
@@ -119,22 +121,73 @@ export async function handleScreener() {
       'DE','GILD','MDLZ','REGN','PANW','CB','ADI','VRTX','SO','CME',
       'BX','LRCX','PYPL','MU','PLTR','COIN','SOFI','ARM','SNOW','CRWD',
       'DDOG','NET','ZS','MRVL','ABNB','DASH','RBLX','SHOP','SQ','ROKU',
-      'CVX','COP','SLB','OXY','EOG','NEE','DUK','AEP','D','SRE',
-      'T','VZ','CMCSA','TMUS','RTX','LMT','GD','NOC','BA','UNP',
-      'FDX','UPS','NKE','LULU','TJX','CMG','YUM','MAR','HLT','RCL',
+      // Energy
+      'CVX','COP','SLB','OXY','EOG','MPC','VLO','PSX','HES','HAL',
+      // Utilities
+      'NEE','DUK','AEP','D','SRE','XEL','WEC','ED','ES','ATO',
+      // Telecom
+      'T','VZ','CMCSA','TMUS','CHTR','LBRDK',
+      // Aerospace & Defence
+      'RTX','LMT','GD','NOC','BA','HII','TDG','HWM','TXT','ERJ',
+      // Transport
+      'UNP','FDX','UPS','CSX','NSC','DAL','UAL','LUV','JBLU','JBHT',
+      // Consumer
+      'NKE','LULU','TJX','CMG','YUM','MAR','HLT','RCL','CCL','EXPE',
+      'SBUX','MCD','DPZ','WYNN','MGM','LVS','NCLH',
+      // REITs
       'PLD','AMT','CCI','EQIX','SPG','O','PSA','DLR','WELL','AVB',
+      'VTR','PEAK','ARE','UDR','ESS','MAA','IRM','CUBE','EXR','REG',
+      // Insurance & Financials
       'CI','ELV','MCK','CVS','MMC','AIG','TRV','MET','PRU','PGR',
+      'AFL','ALL','HIG','WRB','L','ACGL','RNR','FNF','AJG','BRO',
+      'C','WFC','USB','PNC','TFC','FITB','MTB','HBAN','CFG','KEY',
+      'ALLY','DFS','SYF','COF',
+      // International
       'NVO','SAP','TM','SONY','MELI','BABA','NIO','NU','AZN','GSK',
+      'TSM','ASML','UL','BHP','RIO','SHEL','BP','DEO','BTI','SNY',
+      'LYG','ING','WBD','SPOT','SE','GRAB','CPNG',
+      // Materials
       'FCX','NEM','APD','SHW','NUE','CL','KMB','MNST','GIS','HSY',
+      'DD','DOW','ECL','PPG','VMC','MLM','CF','MOS','ALB','IP',
+      // Semiconductors
       'ANET','FTNT','KLAC','SMCI','ON','MCHP','SNPS','CDNS','ANSS','SEDG',
+      'MPWR','SWKS','QRVO','TER','LSCC','WOLF',
+      // Clean Energy
       'ENPH','FSLR','CEG','VST','CARR','TT','IR','EMR','ROK','DOV',
+      // Industrials
       'ETN','WM','RSG','ECL','ITW','ODFL','FAST','PAYX','ADP','CPRT',
-      'ORLY','AZO','POOL','IDXX','DXCM','ALGN','PODD','HOLX','TECH','WAT',
-      'MSCI','ICE','MCO','SPGI','FIS','FISV','GPN','WEX','PAYC','PCTY',
+      'ROL','SWK','GWW','NDSN','XYL','TRMB','AME','DOV','PH','IEX',
+      'MMM','GPC','ROP','CTAS','BR','VRSK','LDOS','SAIC','KBR',
+      // Healthcare
       'DHR','BMY','BIIB','MRNA','ILMN','ZTS','VEEV','CNC','HCA','GEHC',
+      'DXCM','ALGN','PODD','HOLX','TECH','WAT','BIO','A','PKI','AZTA',
+      'TDOC','HIMS','RMD','BSX','EW','MDT','ZBH','ISRG','ICLR','IQV',
+      // Fintech & Data
+      'MSCI','ICE','MCO','SPGI','FIS','FISV','GPN','WEX','PAYC','PCTY',
+      'INTU','ADSK','ANSS','BILL','TOST','AFRM','UPST','HOOD','RIVN',
+      // Auto
+      'GM','F','RIVN','LCID','LI','XPEV','STLA','TM','HMC','RACE',
+      // Retail
+      'ORLY','AZO','POOL','IDXX','DLTR','DG','FIVE','ROST','BURL','WSM',
+      'W','CHWY','ETSY','EBAY','BBY','KSS','M','JWN','GPS','ANF',
+      // Media & Gaming
+      'EA','TTWO','ATVI','PARA','FOX','NWSA','RBLX','U','DKNG','PENN',
+      // Cloud & SaaS
+      'ZM','DOCU','OKTA','MDB','TWLO','TTD','HUBS','PCOR','ESTC','CFLT',
+      'GTLB','PATH','MNDY','APP','SNAP','PINS','RDDT','ROKU',
+      // Biotech
+      'AMGN','GILD','VRTX','REGN','ALNY','BMRN','SGEN','BNTX','MRNA',
+      'RARE','SRPT','INCY','UTHR','BGNE','EXEL','PCVX','CYTK',
+      // ETFs — broad
       'SPY','QQQ','IWM','DIA','VOO','VTI','ARKK','XLF','XLE','XLK',
       'GLD','SLV','TLT','HYG','SOXX','SMH','XBI','XLV','XLI','XLP',
       'KWEB','EEM','VWO','EFA','VEA','IEMG','VNQ','VNQI','LQD','BND',
+      // ETFs — thematic / sector
+      'XLC','XLY','XLRE','XLU','XLB','HACK','BOTZ','LIT','TAN','ICLN',
+      'JETS','BITO','IBIT','MSOS','YOLO','AAXJ','FXI','EWZ','EWJ','RSX',
+      'ARKF','ARKG','ARKQ','ARKW','SOXL','SOXS','TQQQ','SQQQ','SPXS','UPRO',
+      'IYR','SCHD','VIG','DVY','VYM','DGRO','JEPI','JEPQ','DIVO','QYLD',
+      'AGG','VCIT','VCSH','MBB','GOVT','SHY','IEF','TIPS','EMB','PCY',
     ]
     // Only fetch tickers we haven't seen yet
     const missing = coreTickers.filter((t) => !seen.has(t))

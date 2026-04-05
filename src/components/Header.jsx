@@ -1,5 +1,6 @@
 import React, { useState, forwardRef } from 'react'
 import { DISCLAIMER_PATH, DONATE_PATH, WATCHLIST_PATH, SCREENER_PATH, tickerFromPath } from '../lib/routes.js'
+import TickerSearch from './TickerSearch.jsx'
 
 const SunIcon = () => (
   <svg
@@ -44,6 +45,7 @@ const Header = forwardRef(function Header(
     onAnalyse,
     loading,
     activeTicker,
+    activePage,
     onNavigateDisclaimer,
     onNavigateDonate,
     onNavigateWatchlist,
@@ -67,9 +69,19 @@ const Header = forwardRef(function Header(
     }
   }
 
+  function handleSelect(symbol) {
+    setTicker(symbol)
+    onAnalyse(symbol)
+    setMenuOpen(false)
+  }
+
   function go(fn) {
     setMenuOpen(false)
     fn()
+  }
+
+  function navCls(page) {
+    return `app-header__nav-link${activePage === page ? ' app-header__nav-link--active' : ''}`
   }
 
   return (
@@ -91,16 +103,13 @@ const Header = forwardRef(function Header(
         {/* Desktop search */}
         <form className="app-header__search" onSubmit={handleSubmit}>
           <div className="app-header__search-row">
-            <input
-              ref={inputRef}
-              type="text"
+            <TickerSearch
               value={ticker}
-              onChange={(e) => setTicker(e.target.value.toUpperCase())}
-              placeholder="Ticker — e.g. AAPL, TSLA, SPY…"
-              aria-label="Ticker symbol"
-              autoComplete="off"
-              autoCapitalize="characters"
-              spellCheck="false"
+              onChange={setTicker}
+              onSelect={handleSelect}
+              placeholder="Search — e.g. AAPL, Apple, Tesla…"
+              ariaLabel="Ticker symbol"
+              inputRef={inputRef}
             />
             <button className="app-header__search-btn" type="submit" disabled={loading}>
               {loading ? '\u2026' : 'Analyse'}
@@ -112,7 +121,7 @@ const Header = forwardRef(function Header(
         <nav className="app-header__nav">
           {onNavigateCompare && (
             <button
-              className="app-header__nav-link"
+              className={navCls('compare')}
               onClick={() => onNavigateCompare(activeTicker || null)}
             >
               Compare
@@ -121,7 +130,7 @@ const Header = forwardRef(function Header(
           {onNavigateWatchlist && (
             <a
               href={WATCHLIST_PATH}
-              className="app-header__nav-link"
+              className={navCls('watchlist')}
               onClick={(e) => {
                 e.preventDefault()
                 onNavigateWatchlist()
@@ -133,7 +142,7 @@ const Header = forwardRef(function Header(
           {onNavigateScreener && (
             <a
               href={SCREENER_PATH}
-              className="app-header__nav-link"
+              className={navCls('screener')}
               onClick={(e) => {
                 e.preventDefault()
                 onNavigateScreener()
@@ -144,7 +153,7 @@ const Header = forwardRef(function Header(
           )}
           <a
             href={DONATE_PATH}
-            className="app-header__nav-link"
+            className={navCls('donate')}
             onClick={(e) => {
               e.preventDefault()
               onNavigateDonate()
@@ -154,7 +163,7 @@ const Header = forwardRef(function Header(
           </a>
           <a
             href={DISCLAIMER_PATH}
-            className="app-header__nav-link"
+            className={navCls('disclaimer')}
             onClick={(e) => {
               e.preventDefault()
               onNavigateDisclaimer()
@@ -189,15 +198,12 @@ const Header = forwardRef(function Header(
         <div className="app-header__menu-search">
           <form onSubmit={handleSubmit}>
             <div className="app-header__search-row">
-              <input
-                type="text"
+              <TickerSearch
                 value={ticker}
-                onChange={(e) => setTicker(e.target.value.toUpperCase())}
-                placeholder="Ticker — e.g. AAPL, TSLA, SPY…"
-                aria-label="Ticker symbol"
-                autoComplete="off"
-                autoCapitalize="characters"
-                spellCheck="false"
+                onChange={setTicker}
+                onSelect={handleSelect}
+                placeholder="Search — e.g. AAPL, Apple…"
+                ariaLabel="Ticker symbol"
               />
               <button className="app-header__search-btn" type="submit" disabled={loading}>
                 {loading ? '\u2026' : 'Analyse'}

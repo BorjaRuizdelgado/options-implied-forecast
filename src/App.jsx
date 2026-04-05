@@ -175,6 +175,7 @@ export default function App() {
         }}
         loading={loading}
         activeTicker={ticker}
+        activePage={page}
         onNavigateDisclaimer={() => navigate(DISCLAIMER_PATH, 'disclaimer')}
         onNavigateDonate={() => navigate(DONATE_PATH, 'donate')}
         onNavigateWatchlist={() => navigate(WATCHLIST_PATH, 'watchlist')}

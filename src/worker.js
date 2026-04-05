@@ -25,6 +25,7 @@ import { handleCryptoOptions, handleCryptoChain, handleCryptoHistory, handleDeri
 import { handleSentiment } from './worker/handlers/sentiment.js'
 import { handleTrending } from './worker/handlers/trending.js'
 import { handleScreener } from './worker/handlers/screener.js'
+import { handleSearch } from './worker/handlers/search.js'
 import { isCrawler, fetchQuickQuote, buildCrawlerHtml, buildCompareCrawlerHtml } from './worker/seo.js'
 import { buildSitemap } from './worker/sitemap.js'
 
@@ -211,6 +212,12 @@ export default {
 
       if (url.pathname === '/api/screener') {
         return await handleScreener()
+      }
+
+      if (url.pathname === '/api/search') {
+        const q = url.searchParams.get('q')
+        if (!q || q.trim().length < 1) return jsonResp({ results: [] })
+        return await handleSearch(q.trim())
       }
 
       // Dynamic sitemap with popular tickers so Google discovers more pages

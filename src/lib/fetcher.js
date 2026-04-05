@@ -77,6 +77,14 @@ export async function fetchScreener() {
 }
 
 /**
+ * Search for tickers by name or symbol.
+ * Returns { results: [{ symbol, name, type, exchange }] }
+ */
+export async function fetchSearch(query) {
+  return get(`${API}/search`, { q: query })
+}
+
+/**
  * Days from today to expiry string "YYYY-MM-DD".
  *
  * Uses calendar-day DTE (industry standard): expiry tomorrow = 1, day-after = 2, etc.

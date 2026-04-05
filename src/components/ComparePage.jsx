@@ -14,6 +14,7 @@ import {
   summarizeMatchup,
 } from '../lib/compare.js'
 import { COMPARE_PREFIX } from '../lib/routes.js'
+import TickerSearch from './TickerSearch.jsx'
 import CompareHero from './compare/CompareHero.jsx'
 import CompareScoreboard from './compare/CompareScoreboard.jsx'
 import ComparePerformanceChart from './compare/ComparePerformanceChart.jsx'
@@ -66,6 +67,15 @@ async function loadCompareTicker(ticker) {
   }
 }
 
+const POPULAR_COMPARISONS = [
+  ['AAPL', 'MSFT'],
+  ['NVDA', 'AMD'],
+  ['SPY', 'QQQ'],
+  ['GOOGL', 'META'],
+  ['TSLA', 'RIVN'],
+  ['KO', 'PEP'],
+]
+
 function CompareInput({ onCompare, initialTickers }) {
   const [t1, setT1] = useState(initialTickers?.[0] || '')
   const [t2, setT2] = useState(initialTickers?.[1] || '')
@@ -86,34 +96,32 @@ function CompareInput({ onCompare, initialTickers }) {
   }
 
   return (
-    <form className="compare-form" onSubmit={handleSubmit}>
-      <div className="compare-form__inputs">
-        <input
-          type="text"
-          value={t1}
-          onChange={(e) => setT1(e.target.value.toUpperCase())}
-          placeholder="First ticker"
-          aria-label="First ticker"
-          autoComplete="off"
-          autoCapitalize="characters"
-          spellCheck="false"
-        />
-        <span className="compare-form__vs">vs</span>
-        <input
-          type="text"
-          value={t2}
-          onChange={(e) => setT2(e.target.value.toUpperCase())}
-          placeholder="Second ticker"
-          aria-label="Second ticker"
-          autoComplete="off"
-          autoCapitalize="characters"
-          spellCheck="false"
-        />
-      </div>
-      <button className="compare-form__btn" type="submit" disabled={!t1.trim() || !t2.trim()}>
-        Compare
-      </button>
-    </form>
+    <div className="compare-input-section">
+      <form className="compare-form" onSubmit={handleSubmit}>
+        <div className="compare-form__inputs">
+          <TickerSearch
+            value={t1}
+            onChange={setT1}
+            onSelect={(sym) => { setT1(sym); if (t2.trim()) onCompare(sym, t2.trim().toUpperCase()) }}
+            placeholder="First — e.g. AAPL"
+            ariaLabel="First ticker"
+            className="compare-form__search"
+          />
+          <span className="compare-form__vs">vs</span>
+          <TickerSearch
+            value={t2}
+            onChange={setT2}
+            onSelect={(sym) => { setT2(sym); if (t1.trim()) onCompare(t1.trim().toUpperCase(), sym) }}
+            placeholder="Second — e.g. MSFT"
+            ariaLabel="Second ticker"
+            className="compare-form__search"
+          />
+        </div>
+        <button className="compare-form__btn" type="submit" disabled={!t1.trim() || !t2.trim()}>
+          Compare
+        </button>
+      </form>
+    </div>
   )
 }
 
@@ -192,8 +200,19 @@ export default function ComparePage({ tickers = [] }) {
 
       {!activeTickers.length && (
         <div className="terminal-card compare-empty-state">
-          <div className="terminal-eyebrow">Pick Two Stocks</div>
-          <p>Start with two tickers to compare valuation, quality, growth, risk, and market behavior side by side.</p>
+          <div className="terminal-eyebrow">Popular Comparisons</div>
+          <p>Pick two tickers above, or try one of these popular matchups:</p>
+          <div className="compare-suggestions">
+            {POPULAR_COMPARISONS.map(([a, b]) => (
+              <button
+                key={`${a}-${b}`}
+                className="compare-suggestion"
+                onClick={() => handleCompare(a, b)}
+              >
+                {a} vs {b}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

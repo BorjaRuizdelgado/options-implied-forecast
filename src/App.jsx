@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useMemo, useState, useRef, useCallback } from 'react'
 import Header from './components/Header.jsx'
+import Footer from './components/Footer.jsx'
 import TerminalTabs from './components/TerminalTabs.jsx'
 import OverviewPage from './components/OverviewPage.jsx'
 import ValuePage from './components/ValuePage.jsx'
@@ -8,6 +9,7 @@ import RiskPage from './components/RiskPage.jsx'
 import TrendingTickers from './components/TrendingTickers.jsx'
 import SupportVault from './components/SupportVault.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import TldrBanner from './components/TldrBanner.jsx'
 
 // Heavy pages — deferred until first visit so Plotly stays out of the initial bundle
 const TechnicalsPage = lazy(() => import('./components/TechnicalsPage.jsx'))
@@ -19,6 +21,7 @@ const DonationsPage = lazy(() => import('./components/DonationsPage.jsx'))
 const WatchlistPage = lazy(() => import('./components/WatchlistPage.jsx'))
 const ComparePage = lazy(() => import('./components/ComparePage.jsx'))
 const ScreenerPage = lazy(() => import('./components/ScreenerPage.jsx'))
+const ContactPage = lazy(() => import('./components/ContactPage.jsx'))
 import { daysToExpiry } from './lib/fetcher.js'
 import useResearchTerminal from './hooks/useResearchTerminal.js'
 import useTheme from './hooks/useTheme.js'
@@ -28,6 +31,7 @@ import { invalidateColors } from './lib/theme.js'
 import {
   DISCLAIMER_PATH,
   DONATE_PATH,
+  CONTACT_PATH,
   WATCHLIST_PATH,
   SCREENER_PATH,
   COMPARE_PREFIX,
@@ -39,6 +43,7 @@ import {
 import { OverviewSkeleton, ChartSkeleton } from './components/SkeletonLayouts.jsx'
 import ShortcutHelp from './components/ShortcutHelp.jsx'
 import { prefetchLazyChunks } from './lib/prefetch.js'
+import { tabTldr } from './lib/tldr.js'
 
 const TABS = [
   { id: 'overview', label: 'Overview', caption: 'Decision snapshot' },
@@ -62,6 +67,7 @@ export default function App() {
     const p = currentPath()
     if (p === DISCLAIMER_PATH) return 'disclaimer'
     if (p === DONATE_PATH) return 'donate'
+    if (p === CONTACT_PATH) return 'contact'
     if (p === WATCHLIST_PATH) return 'watchlist'
     if (p === SCREENER_PATH) return 'screener'
     if (isComparePath(p)) return 'compare'
@@ -91,6 +97,18 @@ export default function App() {
   const visibleTabs = useMemo(
     () => TABS.filter((tab) => research?.availability?.[tab.id] ?? tab.id === 'overview'),
     [research],
+  )
+
+  const activeTabTldr = useMemo(
+    () =>
+      tabTldr({
+        activeTab,
+        research,
+        fundamentals,
+        analysis,
+        ticker,
+      }),
+    [activeTab, research, fundamentals, analysis, ticker],
   )
 
   const handleThemeToggle = useCallback(() => {
@@ -130,6 +148,7 @@ export default function App() {
       const p = currentPath()
       if (p === DISCLAIMER_PATH) setPage('disclaimer')
       else if (p === DONATE_PATH) setPage('donate')
+      else if (p === CONTACT_PATH) setPage('contact')
       else if (p === WATCHLIST_PATH) setPage('watchlist')
       else if (p === SCREENER_PATH) setPage('screener')
       else if (isComparePath(p)) setPage('compare')
@@ -175,11 +194,11 @@ export default function App() {
         }}
         loading={loading}
         activeTicker={ticker}
-        onNavigateDisclaimer={() => navigate(DISCLAIMER_PATH, 'disclaimer')}
-        onNavigateDonate={() => navigate(DONATE_PATH, 'donate')}
+        activePage={page}
         onNavigateWatchlist={() => navigate(WATCHLIST_PATH, 'watchlist')}
         onNavigateScreener={() => navigate(SCREENER_PATH, 'screener')}
         onNavigateCompare={handleNavigateCompare}
+        onNavigateDonate={() => navigate(DONATE_PATH, 'donate')}
         theme={theme}
         onToggleTheme={handleThemeToggle}
         hasAnalysis={Boolean(analysis && research)}
@@ -191,18 +210,6 @@ export default function App() {
             <Suspense fallback={null}>
               <DisclaimerPage />
             </Suspense>
-            <div className="page-link-row">
-              <a
-                href="/"
-                className="page-link"
-                onClick={(e) => {
-                  e.preventDefault()
-                  navigate('/', 'terminal')
-                }}
-              >
-                Back to terminal
-              </a>
-            </div>
           </div>
         )}
 
@@ -211,18 +218,14 @@ export default function App() {
             <Suspense fallback={null}>
               <DonationsPage />
             </Suspense>
-            <div className="page-link-row">
-              <a
-                href="/"
-                className="page-link"
-                onClick={(e) => {
-                  e.preventDefault()
-                  navigate('/', 'terminal')
-                }}
-              >
-                Back to terminal
-              </a>
-            </div>
+          </div>
+        )}
+
+        {page === 'contact' && (
+          <div className="main-content">
+            <Suspense fallback={null}>
+              <ContactPage />
+            </Suspense>
           </div>
         )}
 
@@ -238,18 +241,6 @@ export default function App() {
                 }}
               />
             </Suspense>
-            <div className="page-link-row">
-              <a
-                href="/"
-                className="page-link"
-                onClick={(e) => {
-                  e.preventDefault()
-                  navigate('/', 'terminal')
-                }}
-              >
-                Back to terminal
-              </a>
-            </div>
           </div>
         )}
 
@@ -258,18 +249,6 @@ export default function App() {
             <Suspense fallback={<OverviewSkeleton />}>
               <ComparePage tickers={compareTickersFromPath(currentPath())} />
             </Suspense>
-            <div className="page-link-row">
-              <a
-                href="/"
-                className="page-link"
-                onClick={(e) => {
-                  e.preventDefault()
-                  navigate('/', 'terminal')
-                }}
-              >
-                Back to terminal
-              </a>
-            </div>
           </div>
         )}
 
@@ -285,29 +264,27 @@ export default function App() {
                 watchlist={watchlist}
               />
             </Suspense>
-            <div className="page-link-row">
-              <a
-                href="/"
-                className="page-link"
-                onClick={(e) => {
-                  e.preventDefault()
-                  navigate('/', 'terminal')
-                }}
-              >
-                Back to terminal
-              </a>
-            </div>
           </div>
         )}
 
         {page === 'terminal' && !ticker && !loading && !error && (
           <div className="landing">
-            <h1>Borja Ruizdelgado's - Investing Tools</h1>
-            <p className="landing-desc">
-              A browser-based investing workspace for valuation, business quality, downside risk,
-              and options-implied market pricing. Search a ticker or start from the live trending
-              list.
-            </p>
+            <h1>Borja Ruizdelgado's Trading Tools</h1>
+            <p className="landing-subtitle">Search any ticker to get started</p>
+            <div className="landing-steps">
+              <div className="landing-step">
+                <span className="landing-step__num">1</span>
+                <span className="landing-step__text">Search a stock or crypto</span>
+              </div>
+              <div className="landing-step">
+                <span className="landing-step__num">2</span>
+                <span className="landing-step__text">Read the scores &amp; verdicts</span>
+              </div>
+              <div className="landing-step">
+                <span className="landing-step__num">3</span>
+                <span className="landing-step__text">Explore the deep-dive tabs</span>
+              </div>
+            </div>
             <TrendingTickers
               onTickerClick={(nextTicker) => {
                 setActiveTab('overview')
@@ -348,6 +325,7 @@ export default function App() {
             </div>
 
             <div className="tab-content" key={theme}>
+              {activeTabTldr && <TldrBanner text={activeTabTldr.text} tone={activeTabTldr.tone} />}
               {activeTab === 'overview' && (
                 <ErrorBoundary name="OverviewPage">
                   <OverviewPage
@@ -431,30 +409,19 @@ export default function App() {
                     </Suspense>
                   ) : (
                     <div className="info-box">
-                      Fundamental reference data is not available for this ticker.
+                      Fundamental data isn't available for this ticker yet. Try a stock listed on a major exchange (NYSE, NASDAQ).
                     </div>
                   )}
                 </ErrorBoundary>
               )}
 
-              <hr />
-              <div className="page-link-row">
-                <a
-                  href={DISCLAIMER_PATH}
-                  className="page-link"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    navigate(DISCLAIMER_PATH, 'disclaimer')
-                  }}
-                >
-                  Disclaimer
-                </a>
-              </div>
               <SupportVault />
             </div>
           </>
         )}
       </main>
+
+      <Footer onNavigate={navigate} />
 
       {showHelp && <ShortcutHelp onClose={() => setShowHelp(false)} />}
     </div>

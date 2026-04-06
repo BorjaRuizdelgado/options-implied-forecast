@@ -35,7 +35,7 @@ export default function DonationsPage() {
   return (
     <section className="legal-page">
       <div className="section-heading">
-        <h1>Support</h1>
+        <h1>Donate</h1>
         <p>No paywalls, no ads, no cookie banners — keep it that way.</p>
       </div>
 
@@ -45,7 +45,7 @@ export default function DonationsPage() {
           with no tracking, no popups, and no monetisation of your data.
         </p>
         <p>
-          If it has been useful to you, you can support continued development and hosting by sending
+          If it has been useful to you, you can donate to continued development and hosting by sending
           a tip in crypto. Choose a chain below and copy the address.
         </p>
       </div>

@@ -74,6 +74,7 @@ describe('tickerFromPath', () => {
   it('returns null for reserved paths', () => {
     expect(tickerFromPath('/disclaimer')).toBeNull()
     expect(tickerFromPath('/donate')).toBeNull()
+    expect(tickerFromPath('/contact')).toBeNull()
     expect(tickerFromPath('/watchlist')).toBeNull()
   })
 
@@ -96,6 +97,7 @@ describe('isReservedPath', () => {
   it('marks known special paths as reserved', () => {
     expect(isReservedPath('/disclaimer')).toBe(true)
     expect(isReservedPath('/donate')).toBe(true)
+    expect(isReservedPath('/contact')).toBe(true)
     expect(isReservedPath('/watchlist')).toBe(true)
     expect(isReservedPath('/compare')).toBe(true)
     expect(isReservedPath('/compare/AAPL/MSFT')).toBe(true)

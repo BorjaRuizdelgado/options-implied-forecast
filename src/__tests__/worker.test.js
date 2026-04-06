@@ -88,6 +88,13 @@ const YF_TRENDING = {
   finance: { result: [{ quotes: [{ symbol: 'AAPL' }] }] },
 }
 
+const YF_SEARCH = {
+  quotes: [
+    { symbol: 'AAPL', shortname: 'Apple Inc.', quoteType: 'EQUITY', exchDisp: 'NASDAQ' },
+    { symbol: 'AAPL.MX', shortname: 'Apple Inc.', quoteType: 'EQUITY', exchDisp: 'Mexico' },
+  ],
+}
+
 const YF_QUOTE = {
   quoteResponse: {
     result: [
@@ -156,6 +163,9 @@ function mockFetchImpl(url) {
   }
   if (u.includes('/v1/finance/trending/')) {
     return Promise.resolve(new Response(JSON.stringify(YF_TRENDING), { status: 200 }))
+  }
+  if (u.includes('/v1/finance/search')) {
+    return Promise.resolve(new Response(JSON.stringify(YF_SEARCH), { status: 200 }))
   }
   if (u.includes('/v7/finance/quote')) {
     return Promise.resolve(new Response(JSON.stringify(YF_QUOTE), { status: 200 }))
@@ -323,6 +333,39 @@ describe('Worker /api/trending', () => {
     expect(data).toHaveProperty('crypto')
     expect(Array.isArray(data.stocks)).toBe(true)
     expect(Array.isArray(data.crypto)).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Search endpoint
+// ---------------------------------------------------------------------------
+
+describe('Worker /api/search', () => {
+  it('returns search results for a valid query', async () => {
+    const res = await callWorker('/api/search?q=AAPL')
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data).toHaveProperty('results')
+    expect(Array.isArray(data.results)).toBe(true)
+    expect(data.results.length).toBeGreaterThan(0)
+    expect(data.results[0]).toHaveProperty('symbol')
+    expect(data.results[0]).toHaveProperty('name')
+    expect(data.results[0]).toHaveProperty('type')
+    expect(data.results[0]).toHaveProperty('exchange')
+  })
+
+  it('returns empty results for empty query', async () => {
+    const res = await callWorker('/api/search?q=')
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.results).toEqual([])
+  })
+
+  it('returns empty results when q param is missing', async () => {
+    const res = await callWorker('/api/search')
+    expect(res.status).toBe(200)
+    const data = await res.json()
+    expect(data.results).toEqual([])
   })
 })
 

@@ -54,11 +54,11 @@ export const COLLECTIONS = [
     filter: (s) => s.marketCap != null && s.marketCap >= 200e9,
   },
   {
-    id: 'midcap',
-    label: 'Mid Caps',
-    tagline: '$10 B – $200 B',
-    icon: '◐',
-    filter: (s) => s.marketCap != null && s.marketCap >= 10e9 && s.marketCap < 200e9,
+    id: 'smallcap',
+    label: 'Small Caps',
+    tagline: '$100 M – $10 B',
+    icon: '○',
+    filter: (s) => s.marketCap != null && s.marketCap >= 100e6 && s.marketCap < 10e9,
   },
   {
     id: 'etf',

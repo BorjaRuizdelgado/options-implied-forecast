@@ -1,5 +1,6 @@
 export const DISCLAIMER_PATH = '/disclaimer'
 export const DONATE_PATH = '/donate'
+export const CONTACT_PATH = '/contact'
 export const WATCHLIST_PATH = '/watchlist'
 export const SCREENER_PATH = '/screener'
 export const COMPARE_PREFIX = '/compare/'
@@ -13,6 +14,7 @@ export function isReservedPath(pathname) {
   return (
     p === DISCLAIMER_PATH ||
     p === DONATE_PATH ||
+    p === CONTACT_PATH ||
     p === WATCHLIST_PATH ||
     p === SCREENER_PATH ||
     p === '/compare' ||

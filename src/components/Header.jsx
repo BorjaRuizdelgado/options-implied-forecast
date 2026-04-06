@@ -1,5 +1,5 @@
 import React, { useState, forwardRef } from 'react'
-import { WATCHLIST_PATH, SCREENER_PATH, tickerFromPath } from '../lib/routes.js'
+import { WATCHLIST_PATH, SCREENER_PATH, DONATE_PATH, tickerFromPath } from '../lib/routes.js'
 import TickerSearch from './TickerSearch.jsx'
 
 const SunIcon = () => (
@@ -49,6 +49,7 @@ const Header = forwardRef(function Header(
     onNavigateWatchlist,
     onNavigateScreener,
     onNavigateCompare,
+    onNavigateDonate,
     theme,
     onToggleTheme,
     hasAnalysis: _hasAnalysis,
@@ -149,6 +150,18 @@ const Header = forwardRef(function Header(
               Discover
             </a>
           )}
+          {onNavigateDonate && (
+            <a
+              href={DONATE_PATH}
+              className={navCls('donate')}
+              onClick={(e) => {
+                e.preventDefault()
+                onNavigateDonate()
+              }}
+            >
+              Donate
+            </a>
+          )}
           <button
             className="app-header__nav-link app-header__theme-btn"
             onClick={onToggleTheme}
@@ -207,6 +220,11 @@ const Header = forwardRef(function Header(
           {onNavigateScreener && (
             <button className="app-header__menu-link" onClick={() => go(onNavigateScreener)}>
               Discover
+            </button>
+          )}
+          {onNavigateDonate && (
+            <button className="app-header__menu-link" onClick={() => go(onNavigateDonate)}>
+              Donate
             </button>
           )}
           <button

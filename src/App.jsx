@@ -197,6 +197,7 @@ export default function App() {
         onNavigateWatchlist={() => navigate(WATCHLIST_PATH, 'watchlist')}
         onNavigateScreener={() => navigate(SCREENER_PATH, 'screener')}
         onNavigateCompare={handleNavigateCompare}
+        onNavigateDonate={() => navigate(DONATE_PATH, 'donate')}
         theme={theme}
         onToggleTheme={handleThemeToggle}
         hasAnalysis={Boolean(analysis && research)}

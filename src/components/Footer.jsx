@@ -16,7 +16,7 @@ export default function Footer({ onNavigate }) {
             Disclaimer
           </a>
           <a href={DONATE_PATH} onClick={(e) => go(e, DONATE_PATH, 'donate')}>
-            Support
+            Donate
           </a>
           <a href={CONTACT_PATH} onClick={(e) => go(e, CONTACT_PATH, 'contact')}>
             Contact

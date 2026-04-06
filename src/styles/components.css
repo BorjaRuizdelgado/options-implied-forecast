@@ -349,8 +349,13 @@
 .data-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: 0.88rem;
   margin-top: 0.75rem;
+}
+
+.data-table th:first-child {
+  width: 50%;
 }
 
 .data-table th {

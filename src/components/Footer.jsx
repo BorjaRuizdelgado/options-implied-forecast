@@ -1,5 +1,5 @@
 import React from 'react'
-import { DISCLAIMER_PATH, DONATE_PATH } from '../lib/routes.js'
+import { DISCLAIMER_PATH, DONATE_PATH, CONTACT_PATH } from '../lib/routes.js'
 
 export default function Footer({ onNavigate }) {
   function go(e, path, pageKey) {
@@ -18,7 +18,9 @@ export default function Footer({ onNavigate }) {
           <a href={DONATE_PATH} onClick={(e) => go(e, DONATE_PATH, 'donate')}>
             Support
           </a>
-          <a href="mailto:borjafruizdelgado@gmail.com">Contact</a>
+          <a href={CONTACT_PATH} onClick={(e) => go(e, CONTACT_PATH, 'contact')}>
+            Contact
+          </a>
         </nav>
       </div>
     </footer>

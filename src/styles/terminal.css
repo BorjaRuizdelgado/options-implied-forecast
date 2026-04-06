@@ -30,7 +30,7 @@
 
 .terminal-tab {
   flex-shrink: 0;
-  padding: 0.45rem 1.1rem;
+  padding: 0.7rem 1.1rem;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
@@ -54,15 +54,6 @@
 
 .terminal-tab__label {
   display: block;
-}
-
-.terminal-tab__caption {
-  display: block;
-  font-size: 0.65rem;
-  font-weight: 400;
-  color: var(--text-muted);
-  letter-spacing: 0.02em;
-  text-transform: none;
 }
 
 .terminal-tab:hover {

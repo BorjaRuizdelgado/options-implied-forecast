@@ -20,6 +20,7 @@ const DonationsPage = lazy(() => import('./components/DonationsPage.jsx'))
 const WatchlistPage = lazy(() => import('./components/WatchlistPage.jsx'))
 const ComparePage = lazy(() => import('./components/ComparePage.jsx'))
 const ScreenerPage = lazy(() => import('./components/ScreenerPage.jsx'))
+const ContactPage = lazy(() => import('./components/ContactPage.jsx'))
 import { daysToExpiry } from './lib/fetcher.js'
 import useResearchTerminal from './hooks/useResearchTerminal.js'
 import useTheme from './hooks/useTheme.js'
@@ -29,6 +30,7 @@ import { invalidateColors } from './lib/theme.js'
 import {
   DISCLAIMER_PATH,
   DONATE_PATH,
+  CONTACT_PATH,
   WATCHLIST_PATH,
   SCREENER_PATH,
   COMPARE_PREFIX,
@@ -64,6 +66,7 @@ export default function App() {
     const p = currentPath()
     if (p === DISCLAIMER_PATH) return 'disclaimer'
     if (p === DONATE_PATH) return 'donate'
+    if (p === CONTACT_PATH) return 'contact'
     if (p === WATCHLIST_PATH) return 'watchlist'
     if (p === SCREENER_PATH) return 'screener'
     if (isComparePath(p)) return 'compare'
@@ -144,6 +147,7 @@ export default function App() {
       const p = currentPath()
       if (p === DISCLAIMER_PATH) setPage('disclaimer')
       else if (p === DONATE_PATH) setPage('donate')
+      else if (p === CONTACT_PATH) setPage('contact')
       else if (p === WATCHLIST_PATH) setPage('watchlist')
       else if (p === SCREENER_PATH) setPage('screener')
       else if (isComparePath(p)) setPage('compare')
@@ -211,6 +215,14 @@ export default function App() {
           <div className="main-content">
             <Suspense fallback={null}>
               <DonationsPage />
+            </Suspense>
+          </div>
+        )}
+
+        {page === 'contact' && (
+          <div className="main-content">
+            <Suspense fallback={null}>
+              <ContactPage />
             </Suspense>
           </div>
         )}

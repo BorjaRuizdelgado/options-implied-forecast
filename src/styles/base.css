@@ -69,6 +69,26 @@
   background: rgba(125, 179, 165, 0.06);
 }
 
+[data-theme='dark'] .decision-card {
+  background: rgba(125, 179, 165, 0.06);
+}
+
+[data-theme='dark'] .fund-accordion-group {
+  border-color: var(--border);
+}
+
+[data-theme='dark'] .fund-accordion__header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme='dark'] .fund-accordion__count {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme='dark'] .section-heading__count {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 [data-theme='dark'] .score-card--positive {
   border-color: var(--green);
   background: var(--green-bg);

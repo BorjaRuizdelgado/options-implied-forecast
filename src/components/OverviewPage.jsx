@@ -3,7 +3,6 @@ import { fmt, fmtCompact, fmtPct, fmtRatio } from '../lib/format.js'
 import { tone, buildFundamentalsScore } from '../lib/scoring.js'
 import ScoreCard from './ScoreCard.jsx'
 import Tooltip from './Tooltip.jsx'
-import ScenarioCard from './ScenarioCard.jsx'
 import MarketSentimentCard from './MarketSentimentCard.jsx'
 import DecisionCard from './DecisionCard.jsx'
 import { METRIC_TIPS } from '../lib/metricTips.js'
@@ -106,28 +105,41 @@ function earningsCountdown(fundamentals) {
   return { label, caption }
 }
 
-function analystBarPosition(spot, low, high) {
-  if (!Number.isFinite(spot) || !Number.isFinite(low) || !Number.isFinite(high) || high === low) return null
-  return Math.max(0, Math.min(100, ((spot - low) / (high - low)) * 100))
+function barPosition(val, low, high) {
+  if (!Number.isFinite(val) || !Number.isFinite(low) || !Number.isFinite(high) || high === low) return null
+  return Math.max(0, Math.min(100, ((val - low) / (high - low)) * 100))
 }
 
-function AnalystConsensus({ fundamentals, spot }) {
+function PriceTarget({ fundamentals, fairValue, spot }) {
   const rec = fundamentals?.recommendationKey
   const target = fundamentals?.targetMeanPrice
   const analysts = fundamentals?.numberOfAnalystOpinions
-  if (!target || !Number.isFinite(target)) return null
+  const analystLow = fundamentals?.targetLowPrice
+  const analystHigh = fundamentals?.targetHighPrice
+  const hasAnalyst = Number.isFinite(target)
+  const hasFairValue = fairValue && Number.isFinite(fairValue.bear) && Number.isFinite(fairValue.bull)
 
-  const upsidePct = Number.isFinite(spot) && spot > 0 ? (target - spot) / spot : null
-  const low = fundamentals?.targetLowPrice
-  const high = fundamentals?.targetHighPrice
+  if (!hasAnalyst && !hasFairValue) return null
+
+  // Pick the widest range that covers both analyst and fair-value data
+  const low = Math.min(
+    ...[analystLow, fairValue?.bear].filter(Number.isFinite),
+  )
+  const high = Math.max(
+    ...[analystHigh, fairValue?.bull].filter(Number.isFinite),
+  )
+  if (!Number.isFinite(low) || !Number.isFinite(high) || high === low) return null
+
+  const spotPos = barPosition(spot, low, high)
+  const meanPos = hasAnalyst ? barPosition(target, low, high) : null
+  const basePos = hasFairValue ? barPosition(fairValue.base, low, high) : null
+  const upsidePct = hasAnalyst && Number.isFinite(spot) && spot > 0 ? (target - spot) / spot : null
   const positive = upsidePct != null && upsidePct >= 0
-  const spotPos = analystBarPosition(spot, low, high)
-  const meanPos = analystBarPosition(target, low, high)
 
   return (
     <section className="terminal-section">
       <div className="section-heading">
-        <h2>Analyst Consensus</h2>
+        <h2>Price Target</h2>
       </div>
       <div className="terminal-card">
         <div className="analyst-card__header">
@@ -144,23 +156,31 @@ function AnalystConsensus({ fundamentals, spot }) {
           )}
         </div>
 
-        {Number.isFinite(low) && Number.isFinite(high) && (
-          <div className="analyst-bar">
-            <div className="analyst-bar__track">
-              {meanPos != null && (
-                <div className="analyst-bar__mean" style={{ left: `${meanPos}%` }} title={`Mean target ${fmt(target)}`} />
-              )}
-              {spotPos != null && (
-                <div className="analyst-bar__spot" style={{ left: `${spotPos}%` }} title={`Current ${fmt(spot)}`} />
-              )}
-            </div>
-            <div className="analyst-bar__labels">
-              <span>Low {fmt(low)}</span>
-              <span>Mean {fmt(target)}</span>
-              <span>High {fmt(high)}</span>
-            </div>
+        <div className="analyst-bar">
+          <div className="analyst-bar__track">
+            {basePos != null && (
+              <div className="analyst-bar__fair" style={{ left: `${basePos}%` }} title={`Fair value ${fmt(fairValue.base)}`} />
+            )}
+            {meanPos != null && (
+              <div className="analyst-bar__mean" style={{ left: `${meanPos}%` }} title={`Analyst target ${fmt(target)}`} />
+            )}
+            {spotPos != null && (
+              <div className="analyst-bar__spot" style={{ left: `${spotPos}%` }} title={`Current ${fmt(spot)}`} />
+            )}
           </div>
-        )}
+          <div className="analyst-bar__labels">
+            <span>{fmt(low)}</span>
+            {hasAnalyst && <span>Target {fmt(target)}</span>}
+            {hasFairValue && !hasAnalyst && <span>Fair {fmt(fairValue.base)}</span>}
+            <span>{fmt(high)}</span>
+          </div>
+        </div>
+
+        <div className="analyst-bar__legend">
+          {spotPos != null && <span className="analyst-bar__legend-item"><span className="analyst-bar__legend-dot analyst-bar__legend-dot--spot" /> Current {fmt(spot)}</span>}
+          {meanPos != null && <span className="analyst-bar__legend-item"><span className="analyst-bar__legend-dot analyst-bar__legend-dot--mean" /> Analyst target</span>}
+          {basePos != null && <span className="analyst-bar__legend-item"><span className="analyst-bar__legend-dot analyst-bar__legend-dot--fair" /> Fair value</span>}
+        </div>
       </div>
     </section>
   )
@@ -451,18 +471,9 @@ export default function OverviewPage({
         </section>
       )}
 
-      <AnalystConsensus fundamentals={fundamentals} spot={spot} />
+      <PriceTarget fundamentals={fundamentals} fairValue={research?.valuation?.fairValue} spot={spot} />
 
       <CollapsedReasonList title="Key Signals" reasons={research?.signals || []} />
-
-      {research?.valuation?.fairValue && (
-        <section className="terminal-section">
-          <div className="section-heading">
-            <h2>Fair Value Scenario</h2>
-          </div>
-          <ScenarioCard fairValue={research.valuation.fairValue} spot={spot} />
-        </section>
-      )}
 
       <CollapsedReasonList title="Why These Scores" reasons={reasonPool} />
     </>

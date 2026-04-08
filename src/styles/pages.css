@@ -79,6 +79,112 @@
   border-color: var(--accent-warm);
 }
 
+/* ---- Price Target card ---- */
+.price-target {
+  width: 100%;
+}
+
+.price-target__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.rec-badge {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-radius: var(--radius-pill);
+  line-height: 1.4;
+}
+
+.rec-badge--buy {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1.2px solid var(--green);
+}
+
+.rec-badge--hold {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border: 1.2px solid var(--accent);
+}
+
+.rec-badge--sell {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1.2px solid var(--red);
+}
+
+.price-target__analysts {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.price-target__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.price-target__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.price-target__row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.price-target__row:first-child {
+  padding-top: 0;
+}
+
+.price-target__label {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  min-width: 7rem;
+}
+
+.price-target__value {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.price-target__value--neutral {
+  color: var(--text);
+}
+
+.price-target__value--positive {
+  color: var(--green);
+}
+
+.price-target__value--negative {
+  color: var(--red);
+}
+
+.price-target__gap {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+.price-target__gap--positive {
+  color: var(--green);
+}
+
+.price-target__gap--negative {
+  color: var(--red);
+}
+
 /* ---- Strategy suggestions ---- */
 .strategy-grid {
   display: grid;

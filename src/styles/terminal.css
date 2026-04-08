@@ -94,7 +94,7 @@
 }
 
 .hero-stats {
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
 .terminal-grid--2 {
@@ -320,8 +320,8 @@
   display: flex;
   justify-content: space-between;
   margin-top: 0.4rem;
-  font-size: 0.72rem;
-  color: var(--text-muted);
+  font-size: 1rem;
+  color: var(--text);
 }
 
 .scenario-gap {

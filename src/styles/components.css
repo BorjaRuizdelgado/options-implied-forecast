@@ -737,7 +737,7 @@ hr {
 .info-box {
   padding: 1rem 1.25rem;
   background: var(--accent-subtle);
-  border-left: 2px solid var(--accent);
+  border-left: 3px solid var(--accent);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   color: var(--accent);
   font-size: 0.92rem;

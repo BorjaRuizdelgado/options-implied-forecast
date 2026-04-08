@@ -104,7 +104,7 @@ function availableScoreCards(research) {
   return [
     research?.opportunity?.hasData
       ? {
-          label: 'Opportunity',
+          label: 'Total Score',
           value: research.opportunity.score,
           detail: research.opportunity.label,
           tooltip: METRIC_TIPS.opportunityScore,

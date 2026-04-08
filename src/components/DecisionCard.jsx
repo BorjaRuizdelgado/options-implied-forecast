@@ -29,13 +29,7 @@ export default React.memo(function DecisionCard({ ticker, score, signals }) {
   return (
     <div className={`decision-card decision-card--${t}`}>
       <span className="decision-card__icon" aria-hidden="true">{icon}</span>
-      <div className="decision-card__body">
-        <div className="decision-card__label">Bottom Line</div>
-        <p className="decision-card__text">{text}</p>
-      </div>
-      {Number.isFinite(score) && (
-        <div className="decision-card__score">{Math.round(score)}</div>
-      )}
+      <p className="decision-card__text">{text}</p>
     </div>
   )
 })

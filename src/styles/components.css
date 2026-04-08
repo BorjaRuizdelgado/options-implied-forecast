@@ -66,38 +66,12 @@
   color: var(--red);
 }
 
-.decision-card__body {
-  flex: 1;
-  min-width: 0;
-}
-
-.decision-card__label {
-  font-size: 0.68rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-  margin-bottom: 0.05rem;
-}
-
 .decision-card__text {
   margin: 0;
   font-size: 0.88rem;
   line-height: 1.6;
   color: var(--text);
 }
-
-.decision-card__score {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--accent);
-  flex-shrink: 0;
-  min-width: 2rem;
-  text-align: center;
-}
-
-.decision-card--positive .decision-card__score { color: var(--green); }
-.decision-card--negative .decision-card__score { color: var(--red); }
 
 /* ---- Main content ---- */
 .main {

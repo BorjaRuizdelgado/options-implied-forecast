@@ -1,17 +1,12 @@
-import React, { lazy, Suspense, useState, useMemo } from 'react'
-import { fmt, fmtCompact, fmtPct } from '../lib/format.js'
+import React, { useMemo, useState } from 'react'
+import { fmt, fmtCompact, fmtPct, fmtRatio } from '../lib/format.js'
 import { tone, buildFundamentalsScore } from '../lib/scoring.js'
 import ScoreCard from './ScoreCard.jsx'
-import ReasonList from './ReasonList.jsx'
 import Tooltip from './Tooltip.jsx'
 import ScenarioCard from './ScenarioCard.jsx'
 import MarketSentimentCard from './MarketSentimentCard.jsx'
 import DecisionCard from './DecisionCard.jsx'
 import { METRIC_TIPS } from '../lib/metricTips.js'
-
-// Lazy-load EarningsCalendar — it imports Plotly (~3 MB) for the EPS chart.
-// Deferring it keeps the initial bundle small for the Overview tab.
-const EarningsCalendar = lazy(() => import('./EarningsCalendar.jsx'))
 
 function CollapsedReasonList({ title, reasons = [] }) {
   const [expanded, setExpanded] = useState(false)
@@ -80,6 +75,75 @@ function VerdictCard({ label, value, caption, tooltip, onClick }) {
       </div>
       {caption && <div className="terminal-caption">{caption}</div>}
     </Tag>
+  )
+}
+
+const REC_LABELS = {
+  strongBuy: 'Strong Buy',
+  buy: 'Buy',
+  hold: 'Hold',
+  underperform: 'Sell',
+  sell: 'Strong Sell',
+}
+
+function recBadgeClass(key) {
+  if (key === 'strongBuy' || key === 'buy') return 'rec-badge rec-badge--buy'
+  if (key === 'underperform' || key === 'sell') return 'rec-badge rec-badge--sell'
+  return 'rec-badge rec-badge--hold'
+}
+
+function earningsCountdown(fundamentals) {
+  const ts = fundamentals?.earningsTimestampStart || fundamentals?.earningsTimestamp
+  if (!ts) return null
+  const date = new Date(ts * 1000)
+  const now = new Date()
+  const days = Math.ceil((date - now) / 86400000)
+  const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  let caption
+  if (days > 0) caption = `In ${days} day${days !== 1 ? 's' : ''}`
+  else if (days === 0) caption = 'Today'
+  else caption = `${Math.abs(days)} day${Math.abs(days) !== 1 ? 's' : ''} ago`
+  return { label, caption }
+}
+
+function AnalystConsensus({ fundamentals, spot }) {
+  const rec = fundamentals?.recommendationKey
+  const target = fundamentals?.targetMeanPrice
+  const analysts = fundamentals?.numberOfAnalystOpinions
+  if (!target || !Number.isFinite(target)) return null
+
+  const upsidePct = Number.isFinite(spot) && spot > 0 ? (target - spot) / spot : null
+  const low = fundamentals?.targetLowPrice
+  const high = fundamentals?.targetHighPrice
+  const positive = upsidePct != null && upsidePct >= 0
+
+  return (
+    <section className="terminal-section">
+      <div className="section-heading">
+        <h2>Analyst Consensus</h2>
+      </div>
+      <div className="terminal-card analyst-card">
+        {rec && REC_LABELS[rec] && (
+          <div className="analyst-card__rec">
+            <span className={recBadgeClass(rec)}>{REC_LABELS[rec]}</span>
+            {analysts > 0 && <span className="analyst-card__analysts">{analysts} analyst{analysts !== 1 ? 's' : ''}</span>}
+          </div>
+        )}
+        <div className="analyst-card__targets">
+          <div className="analyst-card__target-row">
+            <span className="analyst-card__target-price">{fmt(target)}</span>
+            {upsidePct != null && (
+              <span className={`analyst-card__upside analyst-card__upside--${positive ? 'positive' : 'negative'}`}>
+                {positive ? '+' : ''}{(upsidePct * 100).toFixed(1)}%
+              </span>
+            )}
+          </div>
+          {Number.isFinite(low) && Number.isFinite(high) && (
+            <span className="analyst-card__range">Range {fmt(low)} – {fmt(high)}</span>
+          )}
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -296,6 +360,27 @@ export default function OverviewPage({
             <div className="terminal-stat">{fmtCompact(fundamentals?.marketCap)}</div>
             <div className="terminal-caption">{fundamentals?.exchange || 'Market'}</div>
           </div>
+          {earningsCountdown(fundamentals) && (() => {
+            const e = earningsCountdown(fundamentals)
+            return (
+              <div className="terminal-card terminal-card--compact">
+                <div className="terminal-eyebrow">Next Earnings</div>
+                <div className="terminal-stat">{e.label}</div>
+                <div className="terminal-caption">{e.caption}</div>
+              </div>
+            )
+          })()}
+          {fundamentals?.dividendYield > 0 && (
+            <div className="terminal-card terminal-card--compact">
+              <div className="terminal-eyebrow">Dividend Yield</div>
+              <div className="terminal-stat">{fmtRatio(fundamentals.dividendYield)}%</div>
+              <div className="terminal-caption">
+                {fundamentals.payoutRatio != null
+                  ? `Payout ${fmtPct(fundamentals.payoutRatio)}`
+                  : 'Annual yield'}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -347,6 +432,10 @@ export default function OverviewPage({
         </section>
       )}
 
+      <AnalystConsensus fundamentals={fundamentals} spot={spot} />
+
+      <CollapsedReasonList title="Key Signals" reasons={research?.signals || []} />
+
       {research?.valuation?.fairValue && (
         <section className="terminal-section">
           <div className="section-heading">
@@ -356,11 +445,6 @@ export default function OverviewPage({
         </section>
       )}
 
-      <Suspense fallback={null}>
-        <EarningsCalendar fundamentals={fundamentals} />
-      </Suspense>
-
-      <CollapsedReasonList title="Key Signals" reasons={research?.signals || []} />
       <CollapsedReasonList title="Why These Scores" reasons={reasonPool} />
     </>
   )

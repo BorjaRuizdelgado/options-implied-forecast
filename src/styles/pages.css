@@ -79,6 +79,94 @@
   border-color: var(--accent-warm);
 }
 
+/* ---- Analyst consensus card ---- */
+.analyst-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.analyst-card__rec {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.rec-badge {
+  display: inline-block;
+  padding: 0.3rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-radius: var(--radius-pill);
+  line-height: 1.3;
+}
+
+.rec-badge--buy {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1.2px solid var(--green);
+}
+
+.rec-badge--hold {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border: 1.2px solid var(--accent);
+}
+
+.rec-badge--sell {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1.2px solid var(--red);
+}
+
+.analyst-card__analysts {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.analyst-card__targets {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.analyst-card__target-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.analyst-card__target-price {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.analyst-card__upside {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.analyst-card__upside--positive {
+  color: var(--green);
+}
+
+.analyst-card__upside--negative {
+  color: var(--red);
+}
+
+.analyst-card__range {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
 /* ---- Strategy suggestions ---- */
 .strategy-grid {
   display: grid;

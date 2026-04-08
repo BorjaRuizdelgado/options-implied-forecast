@@ -106,6 +106,11 @@ function earningsCountdown(fundamentals) {
   return { label, caption }
 }
 
+function analystBarPosition(spot, low, high) {
+  if (!Number.isFinite(spot) || !Number.isFinite(low) || !Number.isFinite(high) || high === low) return null
+  return Math.max(0, Math.min(100, ((spot - low) / (high - low)) * 100))
+}
+
 function AnalystConsensus({ fundamentals, spot }) {
   const rec = fundamentals?.recommendationKey
   const target = fundamentals?.targetMeanPrice
@@ -116,32 +121,46 @@ function AnalystConsensus({ fundamentals, spot }) {
   const low = fundamentals?.targetLowPrice
   const high = fundamentals?.targetHighPrice
   const positive = upsidePct != null && upsidePct >= 0
+  const spotPos = analystBarPosition(spot, low, high)
+  const meanPos = analystBarPosition(target, low, high)
 
   return (
     <section className="terminal-section">
       <div className="section-heading">
         <h2>Analyst Consensus</h2>
       </div>
-      <div className="terminal-card analyst-card">
-        {rec && REC_LABELS[rec] && (
-          <div className="analyst-card__rec">
+      <div className="terminal-card">
+        <div className="analyst-card__header">
+          {rec && REC_LABELS[rec] && (
             <span className={recBadgeClass(rec)}>{REC_LABELS[rec]}</span>
-            {analysts > 0 && <span className="analyst-card__analysts">{analysts} analyst{analysts !== 1 ? 's' : ''}</span>}
-          </div>
-        )}
-        <div className="analyst-card__targets">
-          <div className="analyst-card__target-row">
-            <span className="analyst-card__target-price">{fmt(target)}</span>
-            {upsidePct != null && (
-              <span className={`analyst-card__upside analyst-card__upside--${positive ? 'positive' : 'negative'}`}>
-                {positive ? '+' : ''}{(upsidePct * 100).toFixed(1)}%
-              </span>
-            )}
-          </div>
-          {Number.isFinite(low) && Number.isFinite(high) && (
-            <span className="analyst-card__range">Range {fmt(low)} – {fmt(high)}</span>
+          )}
+          {analysts > 0 && (
+            <span className="analyst-card__analysts">{analysts} analyst{analysts !== 1 ? 's' : ''}</span>
+          )}
+          {upsidePct != null && (
+            <span className={`analyst-card__upside analyst-card__upside--${positive ? 'positive' : 'negative'}`}>
+              {positive ? '+' : ''}{(upsidePct * 100).toFixed(1)}% to target
+            </span>
           )}
         </div>
+
+        {Number.isFinite(low) && Number.isFinite(high) && (
+          <div className="analyst-bar">
+            <div className="analyst-bar__track">
+              {meanPos != null && (
+                <div className="analyst-bar__mean" style={{ left: `${meanPos}%` }} title={`Mean target ${fmt(target)}`} />
+              )}
+              {spotPos != null && (
+                <div className="analyst-bar__spot" style={{ left: `${spotPos}%` }} title={`Current ${fmt(spot)}`} />
+              )}
+            </div>
+            <div className="analyst-bar__labels">
+              <span>Low {fmt(low)}</span>
+              <span>Mean {fmt(target)}</span>
+              <span>High {fmt(high)}</span>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   )
@@ -387,7 +406,7 @@ export default function OverviewPage({
       {scoreCards.length > 0 && (
         <section className="terminal-section">
           <div className="section-heading">
-            <h2>Composite Scores</h2>
+            <h2>Scores</h2>
           </div>
           <div className="score-grid">
             {scoreCards.map((card) => {

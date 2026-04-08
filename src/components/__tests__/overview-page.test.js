@@ -55,7 +55,7 @@ describe('OverviewPage', () => {
       }),
     )
 
-    expect(html).toContain('Composite Scores')
+    expect(html).toContain('Scores')
     expect(html).toContain('Technicals')
     expect((html.match(/\?/g) || []).length).toBeGreaterThanOrEqual(6)
   })

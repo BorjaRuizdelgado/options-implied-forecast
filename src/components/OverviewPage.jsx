@@ -110,7 +110,7 @@ function barPosition(val, low, high) {
   return Math.max(0, Math.min(100, ((val - low) / (high - low)) * 100))
 }
 
-function PriceTarget({ fundamentals, fairValue, spot }) {
+function PriceTarget({ fundamentals, fairValue, spot, onClick }) {
   const rec = fundamentals?.recommendationKey
   const target = fundamentals?.targetMeanPrice
   const analysts = fundamentals?.numberOfAnalystOpinions
@@ -141,7 +141,7 @@ function PriceTarget({ fundamentals, fairValue, spot }) {
       <div className="section-heading">
         <h2>Price Target</h2>
       </div>
-      <div className="terminal-card">
+      <button className="terminal-card terminal-card--clickable" onClick={onClick} type="button" style={{ width: '100%' }}>
         <div className="analyst-card__header">
           {rec && REC_LABELS[rec] && (
             <span className={recBadgeClass(rec)}>{REC_LABELS[rec]}</span>
@@ -181,7 +181,7 @@ function PriceTarget({ fundamentals, fairValue, spot }) {
           {meanPos != null && <span className="analyst-bar__legend-item"><span className="analyst-bar__legend-dot analyst-bar__legend-dot--mean" /> Analyst target</span>}
           {basePos != null && <span className="analyst-bar__legend-item"><span className="analyst-bar__legend-dot analyst-bar__legend-dot--fair" /> Fair value</span>}
         </div>
-      </div>
+      </button>
     </section>
   )
 }
@@ -195,7 +195,7 @@ const VERDICT_TO_TAB = {
 
 // Map score label → tab id
 const SCORE_TO_TAB = {
-  Opportunity: null,
+  'Total Score': null,
   Valuation: 'value',
   Quality: 'quality',
   Risk: 'risk',
@@ -351,7 +351,7 @@ export default function OverviewPage({
   // Stable callback map so memoized children don't re-render due to new arrow functions
   const tabCallbacks = useMemo(() => {
     if (!onTabChange) return {}
-    const ids = ['value', 'quality', 'risk', 'technicals', 'options', 'fundamentals']
+    const ids = ['value', 'quality', 'risk', 'technicals', 'options', 'fundamentals', 'business']
     const map = {}
     for (const id of ids) map[id] = () => onTabChange(id)
     return map
@@ -402,15 +402,15 @@ export default function OverviewPage({
           {earningsCountdown(fundamentals) && (() => {
             const e = earningsCountdown(fundamentals)
             return (
-              <div className="terminal-card terminal-card--compact">
+              <button className="terminal-card terminal-card--compact terminal-card--clickable" onClick={tabCallbacks.business} type="button">
                 <div className="terminal-eyebrow">Next Earnings</div>
                 <div className="terminal-stat">{e.label}</div>
                 <div className="terminal-caption">{e.caption}</div>
-              </div>
+              </button>
             )
           })()}
           {fundamentals?.dividendYield > 0 && (
-            <div className="terminal-card terminal-card--compact">
+            <button className="terminal-card terminal-card--compact terminal-card--clickable" onClick={tabCallbacks.fundamentals} type="button">
               <div className="terminal-eyebrow">Dividend Yield</div>
               <div className="terminal-stat">{fmtRatio(fundamentals.dividendYield)}%</div>
               <div className="terminal-caption">
@@ -418,7 +418,7 @@ export default function OverviewPage({
                   ? `Payout ${fmtPct(fundamentals.payoutRatio)}`
                   : 'Annual yield'}
               </div>
-            </div>
+            </button>
           )}
         </div>
       </section>
@@ -471,7 +471,7 @@ export default function OverviewPage({
         </section>
       )}
 
-      <PriceTarget fundamentals={fundamentals} fairValue={research?.valuation?.fairValue} spot={spot} />
+      <PriceTarget fundamentals={fundamentals} fairValue={research?.valuation?.fairValue} spot={spot} onClick={tabCallbacks.value} />
 
       <CollapsedReasonList title="Key Signals" reasons={research?.signals || []} />
 

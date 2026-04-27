@@ -27,6 +27,7 @@ export default function TickerSearch({
   const [activeIdx, setActiveIdx] = useState(-1)
   const [userTyping, setUserTyping] = useState(false)
   const timerRef = useRef(null)
+  const searchIdRef = useRef(0)
   const wrapperRef = useRef(null)
   const internalRef = useRef(null)
   const inputEl = externalRef || internalRef
@@ -34,6 +35,8 @@ export default function TickerSearch({
   // Debounced search
   const search = useCallback((q) => {
     clearTimeout(timerRef.current)
+    const searchId = searchIdRef.current + 1
+    searchIdRef.current = searchId
     if (!q || q.length < 1) {
       setResults([])
       setOpen(false)
@@ -42,10 +45,12 @@ export default function TickerSearch({
     timerRef.current = setTimeout(async () => {
       try {
         const data = await fetchSearch(q)
+        if (searchIdRef.current !== searchId) return
         setResults(data.results || [])
         setOpen(data.results?.length > 0)
         setActiveIdx(-1)
       } catch {
+        if (searchIdRef.current !== searchId) return
         setResults([])
         setOpen(false)
       }
@@ -55,6 +60,13 @@ export default function TickerSearch({
   // When value changes from user typing, trigger search
   // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: debounced fetch updates results
   useEffect(() => { if (userTyping) search(value) }, [value, search, userTyping])
+
+  useEffect(() => {
+    return () => {
+      searchIdRef.current += 1
+      clearTimeout(timerRef.current)
+    }
+  }, [])
 
   // Close on outside click
   useEffect(() => {

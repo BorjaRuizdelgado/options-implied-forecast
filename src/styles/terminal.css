@@ -63,6 +63,12 @@
   background: color-mix(in srgb, var(--accent) 4%, transparent);
 }
 
+.terminal-tab:focus,
+.terminal-tab:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .terminal-tab--active {
   color: var(--accent);
   border-bottom-color: var(--accent);

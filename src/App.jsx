@@ -118,11 +118,24 @@ export default function App() {
     invalidateColors()
   }, [toggleTheme])
 
+  const handleTabChange = useCallback(
+    (tabId) => {
+      setActiveTab(tabId)
+      if (ticker) {
+        const path = `/${encodeURIComponent(ticker)}/${encodeURIComponent(tabId)}`
+        if (window.location.pathname !== path) {
+          window.history.pushState(null, '', path)
+        }
+      }
+    },
+    [ticker],
+  )
+
   const { showHelp, setShowHelp } = useKeyboardShortcuts({
     inputRef,
     visibleTabs,
     activeTab,
-    setActiveTab,
+    onTabChange: handleTabChange,
   })
 
   // Prefetch lazy chunks once the initial paint is done
@@ -314,15 +327,7 @@ export default function App() {
               <TerminalTabs
                 tabs={visibleTabs}
                 activeTab={activeTab}
-                onChange={(tabId) => {
-                  setActiveTab(tabId)
-                  if (ticker) {
-                    const path = `/${encodeURIComponent(ticker)}/${encodeURIComponent(tabId)}`
-                    if (window.location.pathname !== path) {
-                      window.history.pushState(null, '', path)
-                    }
-                  }
-                }}
+                onChange={handleTabChange}
               />
             </div>
 
@@ -336,15 +341,7 @@ export default function App() {
                     fundamentals={fundamentals}
                     research={research}
                     analysis={analysis}
-                    onTabChange={(tabId) => {
-                      setActiveTab(tabId)
-                      if (ticker) {
-                        const path = `/${encodeURIComponent(ticker)}/${encodeURIComponent(tabId)}`
-                        if (window.location.pathname !== path) {
-                          window.history.pushState(null, '', path)
-                        }
-                      }
-                    }}
+                    onTabChange={handleTabChange}
                     watchlistHas={ticker ? watchlist.has(ticker) : false}
                     onToggleWatchlist={
                       ticker

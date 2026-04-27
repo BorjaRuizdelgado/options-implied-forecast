@@ -1,17 +1,17 @@
 /**
- * prefetch.js — Trigger dynamic imports during browser idle time so that
- * lazy-loaded page chunks are already cached when the user navigates.
+ * prefetch.js — Trigger light dynamic imports during browser idle time.
+ * Chart-heavy pages are intentionally left out so Plotly is fetched only
+ * when the user opens a charting section.
  */
 
 const chunks = [
-  () => import('../components/TechnicalsPage.jsx'),
-  () => import('../components/BusinessPage.jsx'),
-  () => import('../components/OptionsPage.jsx'),
   () => import('../components/FundamentalsPanel.jsx'),
-  () => import('../components/EarningsCalendar.jsx'),
   () => import('../components/NewsPage.jsx'),
-  () => import('../components/ComparePage.jsx'),
   () => import('../components/WatchlistPage.jsx'),
+  () => import('../components/ScreenerPage.jsx'),
+  () => import('../components/DisclaimerPage.jsx'),
+  () => import('../components/DonationsPage.jsx'),
+  () => import('../components/ContactPage.jsx'),
 ]
 
 let prefetched = false

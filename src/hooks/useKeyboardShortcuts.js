@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 
-export default function useKeyboardShortcuts({ inputRef, visibleTabs, activeTab, setActiveTab }) {
+export default function useKeyboardShortcuts({ inputRef, visibleTabs, activeTab, onTabChange }) {
   const [showHelp, setShowHelp] = useState(false)
 
   const handleKeyDown = useCallback(
@@ -41,7 +41,7 @@ export default function useKeyboardShortcuts({ inputRef, visibleTabs, activeTab,
       if (num >= 1 && num <= 9 && visibleTabs?.length) {
         const tab = visibleTabs[num - 1]
         if (tab) {
-          setActiveTab(tab.id)
+          onTabChange(tab.id)
           return
         }
       }
@@ -54,11 +54,11 @@ export default function useKeyboardShortcuts({ inputRef, visibleTabs, activeTab,
         const delta = e.key === 'ArrowLeft' ? -1 : 1
         const nextIdx = Math.max(0, Math.min(visibleTabs.length - 1, currentIdx + delta))
         if (nextIdx !== currentIdx) {
-          setActiveTab(visibleTabs[nextIdx].id)
+          onTabChange(visibleTabs[nextIdx].id)
         }
       }
     },
-    [inputRef, visibleTabs, activeTab, setActiveTab, showHelp],
+    [inputRef, visibleTabs, activeTab, onTabChange, showHelp],
   )
 
   useEffect(() => {

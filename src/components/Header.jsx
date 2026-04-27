@@ -1,4 +1,4 @@
-import React, { useState, forwardRef } from 'react'
+import React, { useEffect, useState, forwardRef } from 'react'
 import { WATCHLIST_PATH, SCREENER_PATH, DONATE_PATH, tickerFromPath } from '../lib/routes.js'
 import TickerSearch from './TickerSearch.jsx'
 
@@ -58,6 +58,15 @@ const Header = forwardRef(function Header(
 ) {
   const [ticker, setTicker] = useState(() => tickerFromPath(window.location.pathname) || '')
   const [menuOpen, setMenuOpen] = useState(false)
+
+  useEffect(() => {
+    if (activeTicker) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- keep search text aligned with external ticker navigation
+      setTicker(activeTicker)
+    } else if (activePage === 'terminal') {
+      setTicker('')
+    }
+  }, [activePage, activeTicker])
 
   function handleSubmit(e) {
     e.preventDefault()

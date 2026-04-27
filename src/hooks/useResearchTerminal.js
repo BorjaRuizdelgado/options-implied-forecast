@@ -80,9 +80,28 @@ export default function useResearchTerminal() {
   fundamentalsRef.current = fundamentals
   const [research, setResearch] = useState(null)
   const [weighted, setWeighted] = useState(true)
+  const requestIdRef = useRef(0)
+
+  const nextRequestId = useCallback(() => {
+    requestIdRef.current += 1
+    return requestIdRef.current
+  }, [])
+
+  const isCurrentRequest = useCallback((requestId) => requestIdRef.current === requestId, [])
 
   const runAnalysis = useCallback(
-    async (tickerVal, expiry, spotVal, r, allExpirations, useWeighted, fundData, sentiment) => {
+    async (
+      tickerVal,
+      expiry,
+      spotVal,
+      r,
+      allExpirations,
+      useWeighted,
+      fundData,
+      sentiment,
+      parentRequestId,
+    ) => {
+      const requestId = parentRequestId ?? nextRequestId()
       setLoading(true)
       setError(null)
 
@@ -90,19 +109,21 @@ export default function useResearchTerminal() {
         const result = useWeighted
           ? await runWeightedChains(tickerVal, expiry, spotVal, r, allExpirations)
           : await runSingleChain(tickerVal, expiry, spotVal, r)
+        if (!isCurrentRequest(requestId)) return
         setAnalysis(result)
         setResearch(deriveResearch(fundData || fundamentalsRef.current, result, spotVal, null, sentiment))
       } catch (err) {
-        setError(`Analysis failed: ${err.message}`)
+        if (isCurrentRequest(requestId)) setError(`Analysis failed: ${err.message}`)
       } finally {
-        setLoading(false)
+        if (isCurrentRequest(requestId)) setLoading(false)
       }
     },
-    [],
+    [isCurrentRequest, nextRequestId],
   )
 
   const handleAnalyse = useCallback(
     async (tickerInput) => {
+      const requestId = nextRequestId()
       setLoading(true)
       setError(null)
       setAnalysis(null)
@@ -111,6 +132,7 @@ export default function useResearchTerminal() {
 
       try {
         const [optData, rateData] = await Promise.all([fetchOptions(tickerInput), fetchRate()])
+        if (!isCurrentRequest(requestId)) return
 
         const resolvedTicker = optData.ticker || tickerInput
         setTicker(resolvedTicker)
@@ -121,7 +143,7 @@ export default function useResearchTerminal() {
         const sentimentPromise = fetchSentiment(resolvedTicker).catch(() => null)
 
         const basePath = `/${encodeURIComponent(resolvedTicker)}`
-        if (!window.location.pathname.startsWith(basePath)) {
+        if (window.location.pathname !== basePath && !window.location.pathname.startsWith(`${basePath}/`)) {
           window.history.pushState(null, '', basePath)
         }
 
@@ -141,6 +163,7 @@ export default function useResearchTerminal() {
             /* history unavailable */
           }
           const sentiment = await sentimentPromise
+          if (!isCurrentRequest(requestId)) return
           setResearch(deriveResearch(optData.fundamentals || null, null, optData.price, histBars, sentiment))
           return
         }
@@ -149,6 +172,7 @@ export default function useResearchTerminal() {
         setSelectedExpiry(validExps[0])
 
         const sentiment = await sentimentPromise
+        if (!isCurrentRequest(requestId)) return
 
         await runAnalysis(
           resolvedTicker,
@@ -159,14 +183,15 @@ export default function useResearchTerminal() {
           weighted,
           optData.fundamentals || null,
           sentiment,
+          requestId,
         )
       } catch (err) {
-        setError(err.message)
+        if (isCurrentRequest(requestId)) setError(err.message)
       } finally {
-        setLoading(false)
+        if (isCurrentRequest(requestId)) setLoading(false)
       }
     },
-    [runAnalysis, weighted],
+    [isCurrentRequest, nextRequestId, runAnalysis, weighted],
   )
 
   const didAutoRun = useRef(false)
@@ -183,6 +208,7 @@ export default function useResearchTerminal() {
     const onPop = () => {
       const urlTicker = tickerFromPath(window.location.pathname)
       if (!window.location.pathname.replace(/\/$/, '') || window.location.pathname === '/') {
+        nextRequestId()
         setTicker(null)
         setSpot(null)
         setExpirations(null)
@@ -202,7 +228,7 @@ export default function useResearchTerminal() {
 
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
-  }, [handleAnalyse, ticker])
+  }, [handleAnalyse, nextRequestId, ticker])
 
   const handleExpiryChange = useCallback(
     async (timestampStr) => {

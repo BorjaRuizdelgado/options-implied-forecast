@@ -84,9 +84,9 @@ function CompareInput({ onCompare, initialTickers }) {
   const ticker0 = initialTickers?.[0]
   const ticker1 = initialTickers?.[1]
   useEffect(() => {
-    if (ticker0 && !t1) setT1(ticker0)
-    if (ticker1 && !t2) setT2(ticker1)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- keep input fields aligned with URL changes
+    setT1(ticker0 || '')
+    setT2(ticker1 || '')
   }, [ticker0, ticker1])
 
   function handleSubmit(e) {
@@ -132,6 +132,22 @@ export default function ComparePage({ tickers = [] }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [range, setRange] = useState('6M')
+  const propTickerA = tickers[0] || ''
+  const propTickerB = tickers[1] || ''
+
+  useEffect(() => {
+    const next = propTickerA && propTickerB ? [propTickerA, propTickerB] : []
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync compare state after browser back/forward changes the URL props
+    setActiveTickers((prev) => {
+      if (prev.length === next.length && prev[0] === next[0] && prev[1] === next[1]) return prev
+      return next
+    })
+    if (next.length < 2) {
+      setResults([null, null])
+      setError(null)
+      setLoading(false)
+    }
+  }, [propTickerA, propTickerB])
 
   function handleCompare(a, b) {
     setActiveTickers([a, b])

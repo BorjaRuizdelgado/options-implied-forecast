@@ -21,7 +21,6 @@ export default function TickerSummaryCard({
       <button className="trending-card ticker-summary-card__button" onClick={() => onClick(symbol)} type="button">
         <div className="ticker-summary-card__header">
           <span className="trending-card-symbol">{symbol}</span>
-          {action ? <span className="ticker-summary-card__action">{action}</span> : null}
         </div>
         <span className="trending-card-name">{name || symbol}</span>
         {Number.isFinite(price) ? (
@@ -36,6 +35,7 @@ export default function TickerSummaryCard({
           <span className="terminal-caption ticker-summary-card__fallback">Quote unavailable</span>
         )}
       </button>
+      {action ? <span className="ticker-summary-card__action">{action}</span> : null}
     </div>
   )
 }

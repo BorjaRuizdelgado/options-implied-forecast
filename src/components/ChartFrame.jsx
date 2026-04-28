@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Plot from 'react-plotly.js'
-import Plotly from 'plotly.js-dist-min'
 
 function ChartIcon({ name }) {
   const common = {
@@ -27,8 +26,8 @@ function ChartIcon({ name }) {
   if (name === 'view') {
     return (
       <svg {...common}>
-        <path d="m5 3 7.2 17 1.9-6.1L20 12 5 3Z" />
-        <path d="m13.5 13.5 4.5 4.5" />
+        <path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6-10-6-10-6Z" />
+        <circle cx="12" cy="12" r="3" />
       </svg>
     )
   }
@@ -36,10 +35,8 @@ function ChartIcon({ name }) {
   if (name === 'pan') {
     return (
       <svg {...common}>
-        <path d="M12 2v20" />
-        <path d="m5 9 7-7 7 7" />
-        <path d="m19 15-7 7-7-7" />
-        <path d="M2 12h20" />
+        <path d="m5 3 7.2 17 1.9-6.1L20 12 5 3Z" />
+        <path d="m13.5 13.5 4.5 4.5" />
       </svg>
     )
   }
@@ -66,6 +63,19 @@ function modeFromProps(defaultInteractive) {
 
 function dragmodeForMode(mode) {
   return mode === 'pan' ? 'pan' : false
+}
+
+function supportsCartesianDrag(data, layout) {
+  if (layout && typeof layout === 'object') {
+    if (layout.xaxis || layout.yaxis || layout.xaxis2 || layout.yaxis2) return true
+  }
+
+  if (!Array.isArray(data)) return false
+
+  return data.some((trace) => {
+    if (!trace || typeof trace !== 'object') return false
+    return trace.xaxis != null || trace.yaxis != null || Array.isArray(trace.x) || Array.isArray(trace.y)
+  })
 }
 
 function cloneFigurePart(value, revision) {
@@ -97,21 +107,28 @@ export default function ChartFrame({
   const [modeOverride, setModeOverride] = useState(null)
   const [resetKey, setResetKey] = useState(0)
   const [uiRevision, setUiRevision] = useState(0)
+  const isTouchDevice = useMemo(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia?.('(pointer: coarse)').matches || navigator.maxTouchPoints > 0
+  }, [])
   const mode = modeOverride ?? modeFromProps(defaultInteractive)
   const interactive = mode !== 'view'
+  const pinchZoomEnabled = interactive || isTouchDevice
+  const canApplyDragMode = useMemo(() => supportsCartesianDrag(data, layout), [data, layout])
 
   const preparedData = useMemo(() => cloneFigurePart(data, resetKey), [data, resetKey])
 
   const preparedLayout = useMemo(() => {
     const cleanLayout = cloneFigurePart(layout, resetKey) || {}
+    const dragmode = canApplyDragMode ? dragmodeForMode(mode) : undefined
     return {
       ...cleanLayout,
-      dragmode: dragmodeForMode(mode),
+      ...(dragmode === undefined ? {} : { dragmode }),
       uirevision: `chart-${uiRevision}`,
       selectionrevision: `chart-${uiRevision}`,
       editrevision: `chart-${uiRevision}`,
     }
-  }, [layout, mode, resetKey, uiRevision])
+  }, [canApplyDragMode, layout, mode, resetKey, uiRevision])
 
   const preparedConfig = useMemo(
     () => ({
@@ -119,16 +136,11 @@ export default function ChartFrame({
       displayModeBar: false,
       displaylogo: false,
       responsive: true,
-      scrollZoom: interactive,
+      scrollZoom: pinchZoomEnabled,
       doubleClick: 'reset',
     }),
-    [config, interactive],
+    [config, pinchZoomEnabled],
   )
-
-  useEffect(() => {
-    if (!graphRef.current) return
-    Plotly.relayout(graphRef.current, { dragmode: dragmodeForMode(mode) })
-  }, [mode, uiRevision])
 
   useEffect(() => {
     const node = frameRef.current
@@ -172,6 +184,7 @@ export default function ChartFrame({
         'chart-frame',
         `chart-frame--${mode}`,
         interactive ? 'chart-frame--interactive' : 'chart-frame--locked',
+        isTouchDevice ? 'chart-frame--touch' : '',
         className,
       ].filter(Boolean).join(' ')}
     >
